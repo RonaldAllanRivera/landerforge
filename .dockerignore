@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.github
+coverage
+docs
+.env
+.env.*
+!.env.example
+Dockerfile*
+docker-compose.yml
+README.md
+CHANGELOG.md
+.remember
+.playwright-mcp
+.claude
+**/*.log

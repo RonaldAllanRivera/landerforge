@@ -67,7 +67,7 @@ this project fits inside**, verified August 2026.
 | **Inngest** | Background jobs | 50k executions/mo, 5 concurrent | **Yes**, with room to spare |
 | **Browserless** | Loads pages for scraping | 1k units/mo, 2 concurrent, 60s max session | Yes for normal use |
 | **Vercel** | Runs the web app | Generous — but **non-commercial only** | See the warning below |
-| **Anthropic** | Writes the copy | None — pay per use | ~$0.30–0.80 per page |
+| **Anthropic** | Writes the copy | None — pay per use | ~$0.20–0.40 per page |
 
 **So the realistic cost is the Anthropic usage, plus $20/month for Vercel Pro if this
 is commercial.**
@@ -595,8 +595,9 @@ from public.generation_steps
 where created_at >= date_trunc('month', now());
 ```
 
-A healthy page costs roughly $0.30–0.80. Consistently higher usually means caching has
-broken.
+A healthy page costs roughly $0.20–0.40 on the Advertorial template. Consistently
+higher usually means caching has broken, or a section is burning both corrective
+retries every run.
 
 ### Deploying changes
 

@@ -1,0 +1,145 @@
+import { z } from "zod";
+import { TOKEN_CATEGORIES } from "./tokens";
+
+/**
+ * Template manifests: data, not code.
+ *
+ * The manifest is exactly the CMS's editable fields — nothing more. A piece of text
+ * that appears on a rendered lander but has no CMS field is platform chrome, and the
+ * tool never writes it. That is why there is no disclaimer field and no `legal` link
+ * policy anywhere in this schema.
+ */
+
+export const FIELD_TYPES = [
+  "text",
+  "textarea",
+  "markdown",
+  /** Repeated lines wrapping copy in fixed markup — the model never writes the markup. */
+  "scaffolded",
+  "number",
+  /** NOT generated: a position marker so the review screen mirrors the CMS. */
+  "display",
+] as const;
+
+export const VOICES = ["second_person", "brand_we", "reviewer", "expert"] as const;
+
+/** How {{productName}} renders. It never permits a literal — a literal never is. */
+export const PRODUCT_NAME_FORMATS = ["bold", "plain", "none"] as const;
+
+/** The complete set of permitted links in a field. There is no global link rule. */
+export const LINK_POLICIES = ["none", "product_name", "free_anchor"] as const;
+
+export const TemplateFieldSchema = z
+  .object({
+    /** SECTION-LOCAL, e.g. "page_title" — never "hero.page_title". */
+    key: z.string().regex(/^[a-z0-9_]+$/, "field keys are snake_case and section-local"),
+    label: z.string(),
+    type: z.enum(FIELD_TYPES),
+    generate: z.boolean(),
+    /** May be absent on a given instance; skipped by every lint when absent. */
+    optional: z.boolean().optional(),
+
+    /** Fallbacks — used ONLY when the brief has no entry for this field. */
+    fallbackWordTarget: z.tuple([z.number().int(), z.number().int()]).optional(),
+    fallbackItemCount: z.number().int().positive().optional(),
+    charLimit: z.number().int().positive().optional(),
+
+    markdownBold: z.boolean(),
+    productNameFormat: z.enum(PRODUCT_NAME_FORMATS),
+    linkPolicy: z.enum(LINK_POLICIES),
+
+    allowedTokens: z
+      .object({
+        categories: z.array(z.enum(TOKEN_CATEGORIES)).optional(),
+        tokens: z.array(z.string()).optional(),
+      })
+      .optional(),
+
+    /** Required when type === "scaffolded". Keyed by variant name. */
+    lineTemplates: z.record(z.string(), z.string()).optional(),
+
+    /** Skip the spec check — relative timestamps ("11 hours ago") are not specs. */
+    specPolicy: z.literal("exempt").optional(),
+
+    /** Repetition INSIDE one rich-text field. Not the same thing as section `repeat`. */
+    fallbackSubunits: z
+      .object({
+        count: z.tuple([z.number().int(), z.number().int()]),
+        parts: z.record(z.string(), z.tuple([z.number().int(), z.number().int()])),
+        join: z.string().default("\n\n"),
+      })
+      .optional(),
+
+    voice: z.enum(VOICES),
+    notes: z.string().optional(),
+  })
+  .superRefine((field, ctx) => {
+    if (field.type === "scaffolded" && !field.lineTemplates) {
+      ctx.addIssue({
+        code: "custom",
+        message: `${field.key}: scaffolded fields need lineTemplates`,
+      });
+    }
+    if (field.type === "display" && field.generate) {
+      ctx.addIssue({ code: "custom", message: `${field.key}: display fields are never generated` });
+    }
+    if (field.linkPolicy === "product_name" && field.productNameFormat === "none") {
+      ctx.addIssue({
+        code: "custom",
+        message: `${field.key}: cannot link a product name the field must not contain`,
+      });
+    }
+  });
+
+export type TemplateField = z.infer<typeof TemplateFieldSchema>;
+
+export const TemplateSectionSchema = z.object({
+  id: z.string().regex(/^[a-z0-9_]+$/),
+  label: z.string(),
+  /** The CMS renders this as a toggle in the section HEADER, not in the field stack. */
+  presenceToggleLabel: z.string().optional(),
+  /** Genuinely repeated CMS field groups — the ones with an "Add X" button. */
+  repeat: z.tuple([z.number().int(), z.number().int()]).optional(),
+  defaultPresent: z.boolean(),
+  fields: z.array(TemplateFieldSchema).min(1),
+});
+
+export type TemplateSection = z.infer<typeof TemplateSectionSchema>;
+
+export const TEMPLATE_SLUGS = [
+  "advertorial_v1",
+  "comparison_v1",
+  "interstitial_v1",
+  "reasons_v1",
+] as const;
+
+export const TemplateManifestSchema = z.object({
+  slug: z.enum(TEMPLATE_SLUGS),
+  name: z.string(),
+  /** Section order follows the CMS's RENDERED PANEL order, not its nav order. */
+  sections: z.array(TemplateSectionSchema).min(1),
+  /** CSS selector -> "sectionId.fieldKey", for same-platform sources. Data, not code. */
+  selectors: z.record(z.string(), z.string()).optional(),
+});
+
+export type TemplateManifest = z.infer<typeof TemplateManifestSchema>;
+
+/** Manifests are Zod-validated on read, so a bad DB edit fails loudly. */
+export function parseManifest(input: unknown): TemplateManifest {
+  return TemplateManifestSchema.parse(input);
+}
+
+export function findField(
+  manifest: TemplateManifest,
+  sectionId: string,
+  fieldKey: string,
+): TemplateField | undefined {
+  return manifest.sections.find((s) => s.id === sectionId)?.fields.find((f) => f.key === fieldKey);
+}
+
+/** One convention everywhere: sectionId.fieldKey, or sectionId[i].fieldKey when repeating. */
+export function fieldAddress(sectionId: string, fieldKey: string, instanceIndex?: number): string {
+  return instanceIndex === undefined
+    ? `${sectionId}.${fieldKey}`
+    : `${sectionId}[${instanceIndex}].${fieldKey}`;
+}

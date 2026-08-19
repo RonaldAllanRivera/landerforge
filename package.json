@@ -1,0 +1,43 @@
+{
+  "name": "landerforge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Constraint-driven advertorial copy generation for a headless CMS.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "seed": "tsx supabase/seed.ts",
+    "inngest": "npx --yes inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "verify": "npm run typecheck && npm run lint && npm run test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.0",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
+    "cheerio": "^1.1.2",
+    "inngest": "^3.51.0",
+    "next": "^15.5.4",
+    "playwright-core": "^1.56.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "server-only": "^0.0.1",
+    "sharp": "^0.34.4",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.3.0",
+    "@types/node": "^22.18.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

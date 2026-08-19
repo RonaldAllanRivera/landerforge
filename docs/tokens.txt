@@ -1,0 +1,57 @@
+Tracking
+
+{{clickURL}}
+Click URL
+Content
+
+{{productName}}
+Product Name
+
+{{discountValue}}
+Discount Value
+
+{{priceRegular}}
+Regular Price
+
+{{priceDiscounted}}
+Discounted Price
+
+{{guaranteeDays}}
+Guarantee Days
+Date
+
+{{currentDate}}
+Current Date
+
+{{currentYear}}
+Current Year
+Visitor
+
+{{visitorCountryCode}}
+Country Code
+Legal
+
+{{terms_url}}
+Terms URL
+
+{{privacy_url}}
+Privacy URL
+
+{{contact_url}}
+Contact URL
+
+{{impressum_url}}
+Impressum URL
+Conditional
+
+{{if:country=XX}}
+Start country block
+
+{{elif:country=XX}}
+Add another country
+
+{{else}}
+Default fallback
+
+{{endif}}
+End condition

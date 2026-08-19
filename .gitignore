@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/releases
+!.yarn/plugins
+!.yarn/versions
+
+# Build output
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Environment — never commit real keys. .env.example is the template.
+.env
+.env.*
+!.env.example
+
+# Supabase local stack
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+
+# Test and coverage
+coverage/
+.vitest/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.swp
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Tooling caches
+.turbo/
+.eslintcache
+.cache/
+
+# Local agent/session scratch
+.remember/
+.playwright-mcp/
+.claude/settings.local.json
+
+# Vercel
+.vercel

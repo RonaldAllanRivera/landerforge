@@ -1,0 +1,36 @@
+# Local development.
+#
+# Postgres, Auth and Realtime are deliberately NOT here: `supabase start` runs them
+# in Docker already, with the migrations, hooks and RLS this project depends on.
+# Reimplementing that stack by hand would drift from what production actually runs.
+#
+#   supabase start          # database, auth, realtime, studio
+#   docker compose up       # app + inngest dev server
+#
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports: ["3000:3000"]
+    env_file: .env
+    environment:
+      # Reach the Supabase stack on the host from inside the container.
+      NEXT_PUBLIC_SUPABASE_URL: http://host.docker.internal:54321
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes:
+      - .:/app
+      # Keep container-built node_modules; the host tree may hold another platform's
+      # binaries for sharp and playwright-core.
+      - /app/node_modules
+      - /app/.next
+    develop:
+      watch:
+        - { action: sync, path: ./src, target: /app/src }
+        - { action: rebuild, path: package.json }
+
+  inngest:
+    image: inngest/inngest:latest
+    command: inngest dev -u http://web:3000/api/inngest --no-discovery
+    ports: ["8288:8288"]
+    depends_on: [web]

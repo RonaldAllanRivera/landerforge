@@ -1,0 +1,206 @@
+# LanderForge
+
+Generates tokenized advertorial copy for a headless CMS, constrained so the output is
+publishable without editing.
+
+The interesting problem here isn't asking a model for marketing copy — it's making the
+result *trustworthy*. A landing page carries claims, prices and specifications. Get a
+number wrong and you've published a false advertisement. So the model is boxed in on
+three sides: it may only use numbers extracted from a verified source, every piece of
+output is checked by deterministic code before a human sees it, and anything the check
+rejects is sent back with the specific violations quoted.
+
+```
+URL ──► scrape ──► typed blocks ──┐
+paste ─────────────────────────────┼──► brief (LLM) ──► per-section generation ──► review
+screenshot ──► transcribe ─────────┘         │                    │
+                                             │                    ▼
+                                     allowedSpecs         9 deterministic lints
+                                     (guarded)                    │
+                                                    ┌─────────────┴──────────────┐
+                                                  pass                     fail → retry
+                                                    │                    with violations
+                                                    ▼                      (max 2)
+                                              generation_sections
+```
+
+## What makes it non-trivial
+
+**Numbers cannot be invented.** A brief pass extracts every numeric claim from the
+source into an `allowedSpecs` whitelist, and deterministic code then verifies that each
+one *literally appears in the source text* before generation begins. Any number in the
+output that doesn't resolve against that whitelist is a violation. The guard runs before
+the brief is persisted — if it ran after, a retry would resume on an unverified brief
+and the mechanism would silently stop working.
+
+**Language models can't count, so they aren't asked to.** Density matching — making
+generated copy match a source page's length section by section — is split so each side
+does what it's good at. The extractor emits typed blocks, *code* counts the words, the
+model emits only a mapping of block → field, and code builds the word targets. The model
+never emits a number.
+
+**One substrate for every input.** URL scrapes, pasted text and transcribed screenshots
+all produce the identical typed block array, so density behaves the same regardless of
+where the source came from. `raw_text` is defined as the concatenation of those blocks,
+and truncation drops whole blocks rather than cutting the string — otherwise the blocks
+would hold content the text doesn't, and a legitimate spec would fail its own guard.
+
+**Validation is code, not a second model.** Nine lints cover word counts, item counts,
+bold rules, token usage, links, scaffolded markup, compliance, specifications and
+verbatim overlap. They're pure functions over strings with no I/O, which is why they're
+the most heavily tested part of the system.
+
+## The unit problem
+
+A representative example of the kind of care the domain needs.
+
+These products sell internationally, so copy must carry metric-first dual units:
+`372 m² (4,000 sq ft)`. That interacts badly with the specification check unless several
+things are handled together.
+
+- `sq ft` is two tokens but one unit. So are `fl oz` and `sq m`.
+- `in`, `m` and `l` are also ordinary English words. "1 in 3 customers" is stock
+  advertorial phrasing, and a naive matcher reads the `1` as bearing the imperial unit
+  `in` — tripping the dual-unit rule *and* voiding the rhetorical-number exemption. A
+  word-ambiguous abbreviation counts as a unit only when what follows isn't a word or
+  digit.
+- The converted figure has to be a legal specification, or every measurement fails.
+  Conversions are recomputed and compared at the *printed precision*: 2 oz → 56.699 g
+  rounds to `57 g`, and 130 ml → 4.396 fl oz rounds to `4.4 fl oz`. A naive ±0.5%
+  tolerance would reject the first.
+- Sources and outputs are normalised through the *same* pass. A page that writes "weighs
+  just two ounces" must match a `{ value: 2, unit: "oz" }` specification, so number
+  words, unit spellings, unicode minus signs, thousands separators and trailing `+` all
+  fold before comparison — on both sides. Normalising one side only is what makes a
+  checker reject copy that faithfully reproduces its source.
+
+The normalised view is kept *parallel* to the literal text: only the unit, specification
+and overlap lints read it. Word counts and character limits read what the operator will
+actually paste, because "twenty-five percent" collapsing to "25%" would let a field pass
+a limit the clipboard text blows past.
+
+## Architecture
+
+| Concern | Choice | Why |
+|---|---|---|
+| Templates | JSON manifests, Zod-validated on read | Field definitions are data. A word-count change is a file edit, not a deploy. |
+| Orchestration | Inngest, one `step.run` per API call | Only memoized steps survive a crash. A failure at section 12 must not re-run the scrape or re-bill eleven calls. |
+| Validation | Pure functions, no I/O | Testable in milliseconds, reusable in a React Native client. |
+| Auth | Google OAuth, DB-enforced allowlist | The gate runs *before* the user row exists, so an unauthorized account never holds a session. |
+| Authorization | RLS, with role in a JWT claim | The database is the boundary; no rule lives only in application code. |
+| Prompt caching | Two breakpoints on an append-only prefix | Cuts the dominant input cost by roughly an order of magnitude. |
+
+### Prompt caching is a design constraint, not an optimization
+
+Each section call resends the brief and every previously generated section, so by the
+last section the run is re-billing nearly the whole page. Two cache breakpoints fix
+that — one on the system prefix, one moving along the completed sections — but only if
+the prefix is byte-identical and strictly append-only.
+
+That has consequences throughout: the tools array stays empty (a per-section tool
+definition would change the very front of the prefix and make every call a full miss),
+JSON is serialized with sorted keys, and nothing per-call may appear before the last
+breakpoint. `generation_steps` records `cache_read_input_tokens` on every call, because
+a silent cache miss is invisible otherwise and simply costs several times more.
+
+### Durability
+
+The pipeline is a sequence of memoized steps, which forces some non-obvious rules:
+
+- Validation runs as **plain code inside** the step. Throwing on a copy violation would
+  make the platform retry the call identically, *without* the corrective feedback,
+  fighting the application's own retry loop.
+- Each corrective attempt is its own step with a deterministic id, so replay is stable.
+- Steps return metadata, never generated copy — a step's return value is persisted into
+  run state and replayed on every later step.
+- Retry is a **separate event**. Idempotency keys dedupe for 24 hours, so re-firing the
+  original event would be silently swallowed and the button would appear dead.
+
+### Authorization
+
+Sign-in is Google OAuth only. A `before-user-created` database hook rejects any address
+not on an allowlist, before the user row exists — checking afterwards would leave a
+window in which an unauthorized person holds a valid session.
+
+Roles (`admin` / `editor` / `viewer`) live in a table and are stamped into the JWT by a
+custom access-token hook, so policies read a claim rather than running a subquery per
+row. Destructive policies use a live lookup instead, because a claim is stale for up to
+the token's lifetime and revocation shouldn't be.
+
+Two details that fail silently if missed, and are therefore asserted in the migrations:
+`supabase_auth_admin` has no default privileges on `public`, so each hook needs both a
+grant *and* an RLS policy — miss the grant and every signup 500s; miss the policy and
+every JWT ships a null role while login still succeeds. And grants are a separate gate
+from policies: enabling RLS doesn't revoke the default `anon` grants.
+
+## Stack
+
+Next.js 15 (App Router, RSC) · TypeScript strict · Supabase (Postgres, Auth, Realtime,
+RLS) · Inngest · Anthropic API · Playwright via Browserless · Zod · Vitest · Biome
+
+## Running it
+
+Requires Node 22+, Docker, and the Supabase CLI.
+
+```bash
+cp .env.example .env          # fill in the keys
+supabase start                # postgres, auth, realtime, studio
+supabase db reset             # applies migrations in supabase/migrations/
+npm install
+npm run seed                  # upserts manifests/ into the templates table
+npm run dev                   # http://localhost:3000
+npm run inngest               # dev server at http://localhost:8288
+```
+
+Or in containers — `supabase start` still provides the database, since reimplementing
+that stack by hand would drift from what production runs:
+
+```bash
+docker compose up
+```
+
+```bash
+npm run verify   # typecheck + lint + tests
+npm test         # 52 tests, ~0.5s
+```
+
+### Configuration that isn't obvious
+
+- Google OAuth client id and secret go in the **Supabase dashboard**, not in `.env`.
+- Disable email/password and magic links; the allowlist hook only guards signup.
+- Register both auth hooks and add the tables to the `supabase_realtime` publication —
+  `supabase db reset` handles all of this.
+- The Next middleware matcher excludes all of `/api/`. Without that, Inngest's
+  unauthenticated callbacks get redirected to `/login` and the pipeline silently never
+  runs in production.
+
+## Layout
+
+```
+src/lib/shared/      pure domain logic — no framework imports, no I/O
+  ├── manifest.ts      template schema (Zod)
+  ├── blocks.ts        the typed block substrate
+  ├── normalize.ts     numeric/unit normalisation
+  ├── section-plan.ts  code-built density targets
+  └── lints/           the nine validators
+src/lib/anthropic/   client, cost accounting, cache-aware prompt assembly
+src/lib/scrape/      Browserless connection, HTML → blocks
+src/lib/core/        transport-agnostic operations
+src/lib/inngest/     the durable pipeline
+src/app/             App Router routes and server actions
+supabase/migrations/ schema, auth hooks, RLS
+manifests/           template definitions (repo is the source of truth)
+docs/                the implementation plan and CMS references
+```
+
+`src/lib/shared/` deliberately imports nothing from `next/*`, `server-only` or Node
+built-ins. A single stray import there would make the whole validation layer
+unbundleable for a React Native client, and reimplementing the linters mobile-side is
+how two clients start disagreeing about what valid output is.
+
+## Status
+
+Phase 1 — foundation, manifest system, validation, pipeline, review screen.
+See [CHANGELOG.md](CHANGELOG.md) for what's implemented and
+[docs/landerforge-plan.md](docs/landerforge-plan.md) for the full specification,
+including the phases still to come.

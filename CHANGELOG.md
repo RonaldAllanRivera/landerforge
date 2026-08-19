@@ -16,6 +16,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Working access management on `/admin`: grant, change role, and a single
   **Remove access** action performing all three off-boarding writes together.
 - `Makefile` with a self-documenting target list.
+- `docs/setup.md`: a production setup runbook covering every account, key and dashboard
+  setting in dependency order, with a verification checklist and the silent failure
+  modes worth knowing about.
 
 ### Changed
 

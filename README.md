@@ -142,6 +142,9 @@ RLS) · Inngest · Anthropic API · Playwright via Browserless · Zod · Vitest 
 
 Requires Node 22+, pnpm 10+, Docker, and the Supabase CLI.
 
+For **production** — hosted Supabase, Google sign-in, Vercel, background jobs — follow
+[docs/setup.md](docs/setup.md), which walks through every account and setting in order.
+
 ```bash
 cp .env.example .env   # fill in the keys
 make install           # pnpm install --frozen-lockfile

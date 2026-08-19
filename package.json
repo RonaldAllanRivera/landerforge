@@ -45,6 +45,7 @@
     "verify": "pnpm run typecheck && pnpm run lint && pnpm run test",
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "seed:dev": "tsx supabase/seed-dev.ts"
   }
 }

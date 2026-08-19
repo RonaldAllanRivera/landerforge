@@ -16,9 +16,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Working access management on `/admin`: grant, change role, and a single
   **Remove access** action performing all three off-boarding writes together.
 - `Makefile` with a self-documenting target list.
+- `make seed-dev`: creates a local admin account so the app is usable without a Google
+  Cloud project. It goes through the real allowlist and role-provisioning path rather
+  than bypassing it, and refuses to run against a non-local database.
 - `docs/setup.md`: a production setup runbook covering every account, key and dashboard
   setting in dependency order, with a verification checklist and the silent failure
   modes worth knowing about.
+
+### Fixed
+
+- Dockerfiles installed with `npm ci` against a lockfile the pnpm migration removed.
+- RLS tests depended on Supabase's implicit default grants for `authenticated`, which
+  differ between CLI versions — passing locally and failing in CI with a permission
+  error raised before RLS is consulted. Migration `0005` states every grant explicitly,
+  which is also tighter than the default: child tables are now read-only to clients.
+- Seed scripts used top-level await, which tsx cannot emit under CJS.
+- Database tests assumed an empty database and collided with seeded templates. They now
+  use fixture-only identifiers and pass against both a fresh and a working database.
 
 ### Changed
 

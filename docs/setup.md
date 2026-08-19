@@ -4,35 +4,130 @@ A complete walkthrough, assuming no prior knowledge of any of these services. Fo
 top to bottom — the order matters, because several steps need a value produced by an
 earlier one.
 
-Budget about 90 minutes for a first run.
+---
+
+## You do not need all of this today
+
+Set services up when you need them, not before. Each stage works on its own.
+
+### Stage 0 — Run it on your own machine · ~15 minutes · needs only an Anthropic key
+
+Everything except the copywriting runs locally in Docker. No accounts, no deploy, no
+Google setup.
+
+```bash
+cp .env.example .env   # put your Anthropic key in it
+make install
+make db-start          # Supabase runs locally in Docker
+make db-reset          # creates the tables
+make seed              # loads the templates
+make seed-dev          # creates a local admin account
+make dev               # http://localhost:3000
+```
+
+`make db-start` prints the local keys — copy `PUBLISHABLE_KEY` and `SECRET_KEY` into
+your `.env` before running the seeds.
+
+Sign in at `/login` with **dev@localhost.test / devpassword123**, which `make seed-dev`
+created. That is a real account going through the real allowlist and role checks, not a
+bypass — it simply uses a password instead of Google, so you do not need a Google Cloud
+project to try the tool. The password form only appears against a local database.
+
+**Do this first.** If the copy is not what you want, no amount of production setup helps
+— and you will have spent one API key instead of six accounts.
+
+### Stage 1 — Put it online · ~60 minutes · still free
+
+Parts 1 through 14 below: GitHub, Supabase, Google sign-in, Inngest, Vercel. Do this
+when you want to use it from anywhere, or let someone else use it.
+
+### Stage 2 — Add URL scraping · ~5 minutes · free
+
+Part 8, Browserless. Until then, use the "paste the source text" box, which reaches the
+same result with one extra copy-paste. Worth deferring until pasting actually annoys
+you.
+
+### Stage 3 — Only if it becomes a business tool
+
+Vercel Pro at $20/month, for the commercial-use reason explained below. Supabase Pro at
+$25/month if you want automatic backups.
 
 ---
 
 ## What you are building
 
-Six services, each doing one job:
+Six services, each doing one job. **Everything except Anthropic has a free tier that
+this project fits inside**, verified August 2026.
 
-| Service | Job | Cost |
-|---|---|---|
-| **GitHub** | Stores the code, runs the tests | Free |
-| **Vercel** | Runs the web app | Free tier is enough to start |
-| **Supabase** | Database, sign-in, live updates | Free tier works; **$25/mo strongly advised** |
-| **Google Cloud** | Provides "Sign in with Google" | Free |
-| **Anthropic** | Writes the copy | Pay per use, roughly $0.30–0.80 per page |
-| **Inngest** | Runs generation jobs in the background | Free tier is enough |
-| **Browserless** | Loads competitor pages for scraping | From ~$25/mo, or skip it at first |
+| Service | Job | Free tier | Enough here? |
+|---|---|---|---|
+| **GitHub** | Code, CI | Unlimited private repos | Yes |
+| **Supabase** | Database, sign-in, live updates | 500 MB database, 5 GB egress, 50k users | **Yes** — see below |
+| **Google Cloud** | "Sign in with Google" | Free | Yes |
+| **Inngest** | Background jobs | 50k executions/mo, 5 concurrent | **Yes**, with room to spare |
+| **Browserless** | Loads pages for scraping | 1k units/mo, 2 concurrent, 60s max session | Yes for normal use |
+| **Vercel** | Runs the web app | Generous — but **non-commercial only** | See the warning below |
+| **Anthropic** | Writes the copy | None — pay per use | ~$0.30–0.80 per page |
 
-**Realistic monthly cost:** about $25–55 plus per-page generation, depending on whether
-you take paid Supabase and Browserless.
+**So the realistic cost is the Anthropic usage, plus $20/month for Vercel Pro if this
+is commercial.**
 
-### One thing to decide now
+### Supabase free is fine for you
 
-Supabase's free tier **pauses your project after one week of inactivity**. For a tool
-used in bursts that means coming back to a dead backend and a confusing error. If this
-is anything more than an experiment, take the $25/month plan. Everything below works on
-either.
+The free tier's one real trap is that **projects pause after a week of inactivity**. If
+you use this most days, that never triggers — the pause is a problem for tools used in
+occasional bursts, not daily ones.
 
----
+Two things to be aware of rather than act on:
+
+- **500 MB database.** Each generation stores its copy plus the scraped source text.
+  That is roughly 100–200 KB per run, so you have room for a few thousand runs. If it
+  ever gets tight, deleting the `blocks` and `raw_text` of old sources reclaims almost
+  all of it.
+- **No automatic backups.** Paid plans back up daily; free does not. Take your own —
+  there is a one-line command under *Ongoing operation*. Worth doing monthly once you
+  have manifests you would hate to re-author.
+
+Upgrade later if you want backups and more headroom. Nothing in this guide changes.
+
+### Inngest free is comfortably enough
+
+50,000 executions a month. One generation uses roughly 15–20 of them, so that is on the
+order of **2,500 generated pages per month** before you approach the limit. The
+5-concurrent-step cap is irrelevant here because the pipeline deliberately runs one
+generation at a time.
+
+The only free-tier limitation you will actually notice is **24-hour trace retention** —
+if a run fails and you look three days later, the detailed logs are gone. The failure
+reason is still stored in your own database.
+
+### Browserless free works, with one constraint
+
+1,000 units a month and 2 concurrent browsers is far more than a single person needs.
+The binding constraint is the **60-second maximum session**. The scraper is configured
+with a 15-second navigation timeout and a ~30-second overall budget, so it fits — but a
+very slow page could be cut off, and that appears as a scrape failure rather than an
+error message.
+
+If that becomes annoying, the $25/month tier removes the cap. Do not pay for it before
+you have hit the problem.
+
+### ⚠️ Vercel Hobby is non-commercial only
+
+This is the one thing in this guide that costs money and cannot be avoided by choosing a
+different setting. Vercel's fair-use policy states plainly that **the Hobby plan
+restricts users to non-commercial, personal use only**, and Vercel does pause accounts
+over it.
+
+Generating landing pages for offers you run is commercial use. So:
+
+- **Evaluating it, or using it as a portfolio piece?** Hobby is fine.
+- **Using it in the business?** Pro, at $20/month.
+
+If you would rather not pay Vercel at all, the app is a standard Next.js container —
+`docker build` produces a self-contained image that runs anywhere: a $5 VPS, Fly.io,
+Railway, Render, or your own machine. You lose the automatic-deploy-on-push
+convenience, nothing else.
 
 ## Before you start
 
@@ -45,8 +140,11 @@ recovery simple.
 - [console.cloud.google.com](https://console.cloud.google.com) — sign in with the Google
   account you want to administer the app with
 - [console.anthropic.com](https://console.anthropic.com) — sign up, add a payment method
-- [app.inngest.com](https://app.inngest.com) — **sign up with your GitHub account**
-- [browserless.io](https://www.browserless.io) — optional at first, see Part 8
+- [app.inngest.com](https://app.inngest.com) — **sign up with your GitHub account**. Free,
+  no card. This is what runs generation in the background so a two-minute job does not
+  need a browser tab held open, and so a crash mid-run resumes instead of restarting.
+- [browserless.io](https://www.browserless.io) — free, no card. Skip it for now; Part 8
+  explains when you actually need it.
 
 You will also need these on your own machine:
 

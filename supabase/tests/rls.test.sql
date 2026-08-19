@@ -66,23 +66,26 @@ insert into public.user_roles (user_id, role) values
   ('33333333-3333-3333-3333-333333333333', 'editor'),
   ('44444444-4444-4444-4444-444444444444', 'viewer');
 
+-- A fixture-only slug. Reusing a real one collides with seeded data, which makes
+-- these tests pass on a fresh database and fail on a working one.
 insert into public.templates (slug, name, manifest)
-values ('advertorial_v1', 'Advertorial V1', '{"slug":"advertorial_v1","sections":[]}'::jsonb);
+values ('zz_test_rls', 'Fixture', '{"slug":"advertorial_v1","sections":[]}'::jsonb);
 
 insert into public.projects (owner_id, name, product_name)
-values ('22222222-2222-2222-2222-222222222222', 'Test', 'Widget');
+values ('22222222-2222-2222-2222-222222222222', 'zz_test_project', 'Widget');
 
 -- Identity sequences are not rolled back, so ids differ between runs. Resolve them
 -- once into a temp table and reference that everywhere.
 create temp table fixture as
-select (select id from public.templates where slug = 'advertorial_v1') as template_id,
-       (select id from public.projects where name = 'Test') as project_id;
+select (select id from public.templates where slug like 'zz_test_%') as template_id,
+       (select id from public.projects where name = 'zz_test_project') as project_id;
 
 insert into public.generations (owner_id, project_id, template_id)
 select '22222222-2222-2222-2222-222222222222', project_id, template_id from fixture;
 
 create temp table gen as
-select id from public.generations order by id limit 1;
+select id from public.generations
+where project_id = (select project_id from fixture) order by id limit 1;
 
 grant select on fixture, gen to authenticated;
 
@@ -113,7 +116,7 @@ select throws_ok(
 -- ── Shared visibility, role-gated mutation ──────────────────────────────────
 
 select isnt_empty(
-  $$ select id from public.generations $$,
+  $$ select id from public.generations where id = (select id from gen) $$,
   'editor reads every generation, not just their own'
 );
 
@@ -146,7 +149,7 @@ select throws_ok(
 select tests.authenticate_as('44444444-4444-4444-4444-444444444444', 'viewer');
 
 select isnt_empty(
-  $$ select id from public.generations $$,
+  $$ select id from public.generations where id = (select id from gen) $$,
   'viewer can read'
 );
 
@@ -175,7 +178,8 @@ select '44444444-4444-4444-4444-444444444444', project_id, template_id from fixt
 
 create temp table viewer_gen as
 select id from public.generations
-where owner_id = '44444444-4444-4444-4444-444444444444';
+where owner_id = '44444444-4444-4444-4444-444444444444'
+  and project_id = (select project_id from fixture);
 grant select on viewer_gen to authenticated;
 
 select tests.authenticate_as('44444444-4444-4444-4444-444444444444', 'viewer');

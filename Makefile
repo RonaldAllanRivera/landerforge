@@ -44,3 +44,6 @@ docker: ## Build the production image
 
 clean: ## Remove build output and caches
 	rm -rf .next node_modules/.cache coverage
+
+seed-dev: ## Create a local admin account (local Supabase only)
+	pnpm run seed:dev

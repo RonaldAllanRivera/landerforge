@@ -212,7 +212,10 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
+# LOCAL ONLY. Production sign-in is Google OAuth exclusively, configured in the
+# Supabase dashboard rather than in this file — so this cannot leak to production.
+# Enabled here so `make seed-dev` can create a working account without requiring a
+# Google Cloud project just to run the app on your own machine.
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.

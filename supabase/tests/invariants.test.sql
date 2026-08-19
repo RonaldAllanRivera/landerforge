@@ -12,16 +12,17 @@ insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, r
 values ('55555555-5555-5555-5555-555555555555', 'owner@example.com', '{}', '{}',
         'authenticated', 'authenticated');
 
+-- A fixture-only slug; see the note in rls.test.sql.
 insert into public.templates (slug, name, manifest)
-values ('advertorial_v1', 'Advertorial V1',
+values ('zz_test_invariants', 'Fixture',
         '{"slug":"advertorial_v1","name":"A","sections":[]}'::jsonb);
 
 insert into public.projects (owner_id, name, product_name)
-values ('55555555-5555-5555-5555-555555555555', 'Test', 'Widget');
+values ('55555555-5555-5555-5555-555555555555', 'zz_test_project', 'Widget');
 
 create temp table fixture as
-select (select id from public.templates where slug = 'advertorial_v1') as template_id,
-       (select id from public.projects where name = 'Test') as project_id;
+select (select id from public.templates where slug like 'zz_test_%') as template_id,
+       (select id from public.projects where name = 'zz_test_project') as project_id;
 
 -- version_num is assigned by a trigger, not the caller: two editors generating into
 -- one shared project would otherwise read the same max and collide on the unique key.
@@ -31,7 +32,8 @@ insert into public.generations (owner_id, project_id, template_id)
 select '55555555-5555-5555-5555-555555555555', project_id, template_id from fixture;
 
 select results_eq(
-  $$ select version_num from public.generations order by version_num $$,
+  $$ select version_num from public.generations
+     where project_id = (select project_id from fixture) order by version_num $$,
   $$ values (1), (2) $$,
   'version_num is assigned sequentially per project by the trigger'
 );
@@ -39,13 +41,15 @@ select results_eq(
 -- manifest_snapshot is copied from the template, never supplied. If a client could
 -- supply it, an editor would pick the rules their own run is judged against.
 select isnt(
-  (select manifest_snapshot from public.generations where version_num = 1),
+  (select manifest_snapshot from public.generations
+   where version_num = 1 and project_id = (select project_id from fixture)),
   null,
   'manifest_snapshot is stamped from the template at insert'
 );
 
 select results_eq(
-  $$ select (manifest_snapshot ->> 'slug') from public.generations where version_num = 1 $$,
+  $$ select (manifest_snapshot ->> 'slug') from public.generations
+     where version_num = 1 and project_id = (select project_id from fixture) $$,
   $$ values ('advertorial_v1') $$,
   'the snapshot is the template manifest, not caller input'
 );
@@ -54,15 +58,18 @@ select results_eq(
 -- template would judge copied-over sections against rules they were never written for
 -- the moment anyone edits that template — and nothing would surface it.
 update public.templates
-set manifest = '{"slug":"advertorial_v1","name":"CHANGED","sections":[]}'::jsonb;
+set manifest = '{"slug":"advertorial_v1","name":"CHANGED","sections":[]}'::jsonb
+where slug like 'zz_test_%';
 
 insert into public.generations (owner_id, project_id, template_id, parent_id)
 select '55555555-5555-5555-5555-555555555555', f.project_id, f.template_id,
-       (select id from public.generations where version_num = 1)
+       (select id from public.generations
+        where version_num = 1 and project_id = (select project_id from fixture))
 from fixture f;
 
 select results_eq(
-  $$ select (manifest_snapshot ->> 'name') from public.generations where parent_id is not null $$,
+  $$ select (manifest_snapshot ->> 'name') from public.generations
+     where parent_id is not null and project_id = (select project_id from fixture) $$,
   $$ values ('A') $$,
   'a clone inherits the parent snapshot, not the edited live template'
 );
@@ -71,7 +78,8 @@ select results_eq(
 -- what owner_id becomes — that needs a trigger.
 select throws_ok(
   $$ update public.generations
-     set owner_id = '00000000-0000-0000-0000-000000000000' where version_num = 1 $$,
+     set owner_id = '00000000-0000-0000-0000-000000000000'
+     where version_num = 1 and project_id = (select project_id from fixture) $$,
   'owner_id is immutable',
   'ownership cannot be reassigned after insert'
 );

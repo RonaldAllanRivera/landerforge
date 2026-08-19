@@ -65,7 +65,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned, not `latest`. Supabase's default grants for `authenticated`
+          # changed between CLI versions, which made these tests pass locally and
+          # fail in CI. Migration 0005 no longer depends on that default, but an
+          # unpinned toolchain is still an untracked input to the test result.
+          version: 2.115.0
 
       # Applies every migration, so the hooks, triggers and policies under test are
       # exactly the ones the app ships.

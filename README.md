@@ -136,21 +136,22 @@ from policies: enabling RLS doesn't revoke the default `anon` grants.
 ## Stack
 
 Next.js 15 (App Router, RSC) · TypeScript strict · Supabase (Postgres, Auth, Realtime,
-RLS) · Inngest · Anthropic API · Playwright via Browserless · Zod · Vitest · Biome
+RLS) · Inngest · Anthropic API · Playwright via Browserless · Zod · Vitest · pgTAP · Biome
 
 ## Running it
 
-Requires Node 22+, Docker, and the Supabase CLI.
+Requires Node 22+, pnpm 10+, Docker, and the Supabase CLI.
 
 ```bash
-cp .env.example .env          # fill in the keys
-supabase start                # postgres, auth, realtime, studio
-supabase db reset             # applies migrations in supabase/migrations/
-npm install
-npm run seed                  # upserts manifests/ into the templates table
-npm run dev                   # http://localhost:3000
-npm run inngest               # dev server at http://localhost:8288
+cp .env.example .env   # fill in the keys
+make install           # pnpm install --frozen-lockfile
+make db-start          # postgres, auth, realtime, studio
+make db-reset          # applies migrations in supabase/migrations/
+make seed              # upserts manifests/ into the templates table
+make dev               # app on :3000, Inngest dev server on :8288
 ```
+
+`make` on its own lists every target.
 
 Or in containers — `supabase start` still provides the database, since reimplementing
 that stack by hand would drift from what production runs:
@@ -160,9 +161,16 @@ docker compose up
 ```
 
 ```bash
-npm run verify   # typecheck + lint + tests
-npm test         # 52 tests, ~0.5s
+make verify    # typecheck + lint + unit tests — what CI runs
+make test      # 52 unit tests, ~0.5s
+make test-db   # 23 pgTAP policy and invariant tests against real Postgres
 ```
+
+The database tests matter more than their count suggests: RLS policies are the only
+security boundary here and they fail *permissively* when wrong, so each one asserts a
+denial. They cover a viewer who owns the row (the case that catches a policy gating on
+ownership instead of role) and a user whose JWT carries a null role (the state a
+mis-granted auth hook produces, where login still succeeds).
 
 ### Configuration that isn't obvious
 
@@ -200,7 +208,18 @@ how two clients start disagreeing about what valid output is.
 
 ## Status
 
-Phase 1 — foundation, manifest system, validation, pipeline, review screen.
-See [CHANGELOG.md](CHANGELOG.md) for what's implemented and
-[docs/landerforge-plan.md](docs/landerforge-plan.md) for the full specification,
-including the phases still to come.
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Foundation, manifests, validation, pipeline, review screen | **Shipped** |
+| 2 | Scraping + density matching | Not started |
+| 2.5 | Screenshot upload + vision transcription | Not started |
+| 3 | Validation loop | Validators shipped; corrective-loop fixtures outstanding |
+| 4 | Comparison, Interstitial, Reasons manifests | Not started |
+| 5 | Section regeneration, version chain, diffs | Schema ready, UI not started |
+
+Phase definitions and acceptance criteria live in
+[docs/landerforge-plan.md](docs/landerforge-plan.md) — the single specification
+document. [CHANGELOG.md](CHANGELOG.md) records what each release actually contained.
+
+Two Phase 1 acceptance criteria are written but not yet exercised: the cache-hit
+assertion and the signup rejection both need live credentials.

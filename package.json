@@ -3,19 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Constraint-driven advertorial copy generation for a headless CMS.",
-  "engines": { "node": ">=22" },
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "format": "biome check --write .",
-    "seed": "tsx supabase/seed.ts",
-    "inngest": "npx --yes inngest-cli@latest dev -u http://localhost:3000/api/inngest",
-    "verify": "npm run typecheck && npm run lint && npm run test"
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.0",
@@ -39,5 +29,22 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "seed": "tsx supabase/seed.ts",
+    "inngest": "npx --yes inngest-cli@latest dev -u http://localhost:3000/api/inngest",
+    "verify": "pnpm run typecheck && pnpm run lint && pnpm run test",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db"
   }
 }

@@ -970,7 +970,26 @@ One model, stated once:
 
 ## Phases + acceptance criteria
 
-### Phase 1 — Foundation + Advertorial V1 end-to-end
+**Status at a glance.** This section is the single source of truth for what is built.
+Update the marker when a phase lands; the CHANGELOG records the detail.
+
+| Phase | Scope | Status |
+|---|---|---|
+| 1 | Foundation + Advertorial V1 end-to-end | **Shipped** (`v0.1.0`) |
+| 2 | Scraping + density matching | Not started |
+| 2.5 | Screenshot upload + transcription | Not started |
+| 3 | Validation loop | **Validators shipped**, corrective-loop fixtures outstanding |
+| 4 | Remaining manifests | Not started |
+| 5 | Versioning + diffs | Schema ready, UI not started |
+
+Phase 1 shipped its acceptance criteria except the two that need live credentials — the
+cache-hit assertion and the signup rejection — which are written as tests but only
+runnable against a real Anthropic key and Google OAuth client. Phase 3's nine lints are
+implemented and covered by 52 unit tests; what remains is the seeded bad-output fixture
+run against the live corrective loop.
+
+
+### Phase 1 — Foundation + Advertorial V1 end-to-end · **Shipped**
 
 - Supabase schema migrated with RLS on every table and `anon` grants revoked; Google OAuth wired with email/password and magic links disabled; the before-user-created and custom-access-token hooks installed; repo-based manifests + seed script
 - **Author the Advertorial V1 manifest from `advertorial.png`**: every field key, label, type, `markdownBold`, `productNameFormat`, `linkPolicy`, `voice`, `lineTemplates` where the CMS field carries markup, and `display` entries for the toggles/images so the review screen mirrors the page. **Field inventory comes from the CMS capture; fallback word counts come from the "Measured fallbacks" list** (taken from the rendered landers), never from the capture's visible example content — rich-text fields there are internally scrolled, so what you can see is a floor rather than the field's length. Fallbacks apply on the no-source path only.
@@ -980,14 +999,14 @@ One model, stated once:
 - ✅ Accept, auth: a Google account **not** on the allowlist is rejected at signup and never gets an `auth.users` row; an allowlisted account signs in and its JWT carries `user_role` equal to the role its `allowed_emails` row specified (assert the value — a null claim means the access-token hook is missing its grants); a `viewer` is denied a generation by RLS even when the request is forged past the UI and even on a row they own; `/api/inngest` is reachable without a session while every app route is not
 - ✅ Accept, off-boarding: **Remove access** on `/admin` revokes the allowlist row, the role, and the account together, and the removed user cannot sign in again
 
-### Phase 2 — Scraping + density matching
+### Phase 2 — Scraping + density matching · Not started
 
 - Browserless scrape step emitting the typed block array, Step 1 `blockMap` + the code-built `sectionPlan`, `allowedSpecs` with the appears-in-`raw_text` guard
 - ✅ Accept: given a live lander URL, output matches source section density ±10% and uses only source-derived numbers
 - ✅ Accept: a Cloudflare-protected URL degrades to `status = 'blocked'` and the paste-source fallback produces an equivalent run
 - ✅ Accept: simulated Browserless outage mid-run completes source-less, with a `no_source` entry in `run_notes` rendered on the review screen
 
-### Phase 2.5 — Screenshot upload + transcription
+### Phase 2.5 — Screenshot upload + transcription · Not started
 
 - Private Storage bucket with policies, direct-to-storage upload, `sharp` validation and re-encode, slicing, the tool-less block-transcription call on a high-res-tier model, code-side word counting, transcript confirmation UI
 - ✅ Accept: all four `*-sample.png` files (8891–18310 px tall, up to 10.1 MB — every one over the 8000 px hard limit) upload, slice, and transcribe end to end in a single request each; no transcript is truncated and block order matches the page
@@ -999,19 +1018,19 @@ One model, stated once:
 - ✅ Accept: an SVG renamed to `.png`, and a decompression-bomb PNG, are both rejected by the worker's `sharp` validation rather than by the bucket's MIME list
 - ✅ Accept: **Simple Page's manifest is authored from a transcribed screenshot**, closing the last open question
 
-### Phase 3 — Validation loop
+### Phase 3 — Validation loop · Validators shipped
 
 - The normalization pass + all nine lint categories + retry-with-feedback + flagging
 - ✅ Accept: seeded bad outputs are all caught and retries fix or flag — hardcoded price, double-bold sentence, `{{discountValue}}` without `%`, fabricated spec, spelled-out fabricated spec ("weighs just two ounces" with no matching entry), literal product name outside the token, hardcoded year, unbalanced `{{if}}`, literal `XX` country code, case-variant token, link violating the field's `linkPolicy`, unknown scaffold variant, and a ≥12-word verbatim lift from `raw_text`
 - ✅ Accept: legitimate output is **not** flagged — `57 g (2 oz)` passes via the conversion rule, "3 simple steps" passes as rhetorical, and a source spelling "two ounces" matches a `{value: 2, unit: "oz"}` spec
 - ✅ Accept: a 529 injected on one section call retries at the transport layer and the run completes without consuming the validation retry budget
 
-### Phase 4 — Remaining manifests
+### Phase 4 — Remaining manifests · Not started
 
 - Comparison V1 (`comparison.png` — Winner block + Competitors #2–#5 with pros/cons/scores/review counts + scorecard), Interstitial V1 (`Interstitial.png`), Reasons V1 (`reasons.png` — numbered reasons + social proof + threaded comments with replies). **Simple Page is not here** — Phase 2.5 authors it from a transcribed capture.
 - ✅ Accept: all 5 templates generate end-to-end and their review screens visually correspond to the CMS screenshots section-for-section — Simple Page against the capture Phase 2.5 transcribed
 
-### Phase 5 — Versioning + diffs
+### Phase 5 — Versioning + diffs · Schema ready
 
 - Regenerate-section flow, version chain, diff view, changed-section badges
 - ✅ Accept: regenerate one section → new generation row created, diff shows only that section changed

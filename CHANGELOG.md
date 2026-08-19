@@ -7,6 +7,24 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- GitHub Actions CI: verify, production build, pgTAP database tests, and a Docker
+  image build, with concurrency cancellation and read-only permissions.
+- 23 pgTAP tests covering RLS policies and database-enforced invariants, run against
+  real Postgres with every migration applied.
+- Working access management on `/admin`: grant, change role, and a single
+  **Remove access** action performing all three off-boarding writes together.
+- `Makefile` with a self-documenting target list.
+
+### Changed
+
+- Migrated from npm to pnpm, with the version pinned via `packageManager` so CI,
+  Docker and contributors resolve identically.
+- Local Supabase ports remapped to the 553xx range so the stack coexists with other
+  local Supabase projects.
+- Phase status is now tracked in the plan's phase section and mirrored in the README.
+
 ### Planned
 
 - **Phase 2** — Browserless scrape hardening, source-derived density end to end.

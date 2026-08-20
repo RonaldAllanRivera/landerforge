@@ -47,7 +47,8 @@
     "db:test": "supabase test db",
     "seed:dev": "tsx supabase/seed-dev.ts",
     "env:local": "tsx scripts/env-local.ts",
-    "dev:generate": "tsx scripts/dev-generate.ts"
+    "dev:generate": "tsx scripts/dev-generate.ts",
+    "verify:live": "tsx scripts/verify-templates.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

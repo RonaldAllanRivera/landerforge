@@ -1292,7 +1292,7 @@ a test enforces that no footer section or disclaimer field is ever generated.
 
 - ✅ Accept: every shipped manifest parses, and its selectors point at fields that exist
 - ✅ Accept: a repeating section always has something that actually repeats
-- ⏸ Accept: a live generation on each template — needs API budget
+- ⏸ Accept: a live generation on each template — `make verify-live`, needs API budget
 
 ### Phase 5 — Versioning + diffs · **Shipped**
 

@@ -36,7 +36,12 @@ To watch the pipeline run without clicking through the wizard:
 
 ```bash
 make dev-generate      # fetches a lander, extracts it, and queues a real generation
+make verify-live       # one generation per template, with a pass/fail summary
 ```
+
+`make verify-live` is the check that every template still produces usable copy. It costs
+roughly $0.20–$0.60 a template — Interstitial is the expensive one, at 14 generating
+sections against Advertorial's five — so it is a deliberate spend, not part of `verify`.
 
 It prints a link to the review screen and to `/costs`. One run of the advertorial
 template costs roughly $0.25 at the shipped settings.

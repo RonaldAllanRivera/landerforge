@@ -9,6 +9,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`make verify-live`**: one generation per template with a pass/fail summary — cost,
+  clean-versus-flagged sections, and every violation. The last acceptance criterion for
+  Phases 4 and 5 is the only one that needs API budget, so it is a single command rather
+  than a list of manual steps. It preflights the worker before writing anything, because
+  discovering the stack is down after inserting a project, a source and a generation
+  leaves three orphan rows per template to tidy by hand.
+
 - **Version diffs** at `/generations/[id]/diff`, linked from both the project history and
   the review screen. A history that lists runs answers "when" and never "what changed",
   which is the question somebody actually has in front of two versions. Word-level

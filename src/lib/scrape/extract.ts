@@ -12,8 +12,22 @@ import type { TemplateManifest } from "@/lib/shared/manifest";
  * Step 1 is already an LLM structured-output pass over this content.
  */
 
-const BLOCK_SELECTOR = "h1,h2,h3,h4,h5,h6,p,li,blockquote,tr,button,a.cta";
-const STRIP = "script,style,noscript,template,nav,footer,svg,[hidden],[aria-hidden=true]";
+const BLOCK_SELECTOR = "h1,h2,h3,h4,h5,h6,p,li,blockquote,tr,button,a[href]";
+/**
+ * The footer is deliberately NOT stripped: its disclaimers become `disclaimer` blocks,
+ * which the verbatim lint excludes from its corpus and Step 1 never maps to a field.
+ * Stripping instead would also discard any real content a lander puts down there.
+ */
+const STRIP = "script,style,noscript,template,nav,svg,[hidden],[aria-hidden=true]";
+
+/**
+ * Page-builder output does not use semantic elements. The measured landers contain no
+ * <footer> tag at all — the disclaimers live in `<div class="adv-disclaimers">`. A
+ * tag-only check therefore matched nothing, and 278 words of legal boilerplate were
+ * silently entering the density counts and the verbatim-overlap corpus as ordinary
+ * paragraphs.
+ */
+const FOOTER_SELECTOR = "footer,[class*='footer'],[class*='disclaim'],[class*='legal']";
 
 export interface ExtractResult {
   blocks: SourceBlock[];
@@ -54,7 +68,11 @@ export function extractBlocks(html: string, manifest?: TemplateManifest): Extrac
     if (node.parents(BLOCK_SELECTOR).length > 0 && element.tagName !== "li") return;
 
     const className = node.attr("class") ?? "";
-    const block: SourceBlock = { type: blockType(element.tagName, className), text };
+    const inFooter = node.closest(FOOTER_SELECTOR).length > 0;
+    const block: SourceBlock = {
+      type: blockType(element.tagName, className, inFooter),
+      text,
+    };
 
     if (/^h[1-6]$/.test(element.tagName)) block.level = Number(element.tagName[1]);
     if (element.tagName === "tr") {
@@ -75,12 +93,15 @@ export function extractBlocks(html: string, manifest?: TemplateManifest): Extrac
   return { blocks: kept, rawText, truncated, platformSlug };
 }
 
-function blockType(tag: string, className: string): SourceBlock["type"] {
+function blockType(tag: string, className: string, inFooter: boolean): SourceBlock["type"] {
+  // Interactive elements win over position: the footer CTA ("Apply 50% Discount &
+  // Check Availability") is a real cta_button_text field, not boilerplate.
+  if (tag === "button" || tag === "a") return "cta";
+  if (inFooter) return "disclaimer";
   if (/^h[1-6]$/.test(tag)) return "heading";
   if (tag === "li") return "list_item";
   if (tag === "blockquote") return "quote";
   if (tag === "tr") return "table_row";
-  if (tag === "button") return "cta";
   if (/disclaim|legal/i.test(className)) return "disclaimer";
   if (/review|testimonial|comment/i.test(className)) return "testimonial";
   return "paragraph";
@@ -93,11 +114,14 @@ function detectPlatformSlug($: cheerio.CheerioAPI): string | null {
 }
 
 function matchSelector(
-  node: { is(selector: string): boolean },
+  node: { is(selector: string): boolean; closest(selector: string): { length: number } },
   selectors: Record<string, string>,
 ): { sectionId: string; fieldKey: string } | undefined {
   for (const [selector, address] of Object.entries(selectors)) {
-    if (!node.is(selector)) continue;
+    // `closest` covers both the element itself and any matched container it sits in.
+    // Rich-text fields are a single container holding dozens of blocks, so matching
+    // only the element would leave the largest field on the page unhinted.
+    if (node.closest(selector).length === 0) continue;
     const [sectionId, fieldKey] = address.split(".");
     if (sectionId && fieldKey) return { sectionId, fieldKey };
   }

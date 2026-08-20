@@ -9,6 +9,27 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Phase 2: the URL path works, and it no longer needs a headless browser.** Scraping
+  now tries a plain HTTP GET with a realistic user agent first and only escalates to
+  Browserless for what a GET genuinely cannot do — a bot challenge, or a page whose text
+  arrives via JavaScript. The module's own comment already said the protection on these
+  targets is user-agent filtering (a default fetcher UA gets 403, desktop Chrome gets
+  200 on the same URL) and the pages are server-rendered, so a paid dependency with a
+  concurrency cap was doing the work of a GET. Verified end to end from the wizard with
+  **no `BROWSERLESS_TOKEN` set at all**: a live lander returned 81 blocks and 11,830
+  characters and generated from them.
+- **An SSRF guard on the URL field.** Fetching moved from Browserless's network onto our
+  own server, which makes a user-supplied URL a request our infrastructure makes.
+  `http://169.254.169.254/` is the cloud metadata endpoint and `http://localhost:54322/`
+  is the database; neither is on the public internet the field appears to describe.
+  Literal private addresses are rejected up front, hostnames are checked against their
+  resolved addresses, and redirects are followed **by hand** so every hop is re-checked
+  — automatic following would let a public URL redirect to a private one after the guard
+  had already passed.
+- Run notes now record which rung answered, and why a scrape failed. "No Browserless
+  token", "the site refused us" and "that URL does not exist" need different responses
+  and used to look identical.
+
 - **Projects are findable.** There was no index: `/projects/[id]` held a project's whole
   version history and nothing anywhere linked to it, so the only route to an existing
   generation was remembering its id. `/projects` now lists every project with its
@@ -146,6 +167,23 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modes worth knowing about.
 
 ### Fixed
+
+- **The anti-fabrication guard rejected numbers that were in the source.** It compared
+  `rawText.includes(String(value))` — a substring match — so a page writing "1,500
+  customers" failed a brief that correctly recorded 1500. Real landers are full of
+  thousands separators; the page that exposed this had both "1,500" and "4,000". It now
+  compares numbers extracted from the normalised text, which also folds spelled-out
+  quantities and, more usefully, makes the guard agree with the spec lint that has
+  always compared numerically. It is stricter where it should be too: "30" appearing
+  inside "300" no longer verifies a spec of 30.
+- **A fabricated spec killed the entire run** rather than being discarded. The safety
+  property is that an invented number never reaches the copy, and dropping the spec
+  achieves exactly that — the spec lint rejects any number not in `allowedSpecs`, so the
+  model cannot use what was removed. Refusing the whole run achieved nothing more and
+  cost a great deal: measured on a real page, the model invented a bound for a focus
+  range the page states only in words, the run died at the brief twice, each attempt was
+  billed, and a retry re-ran the same call and invented it again — so the URL was simply
+  unusable. Unverified specs are now dropped with a `specs_dropped` run note.
 
 - **The Retry button pointed at a route that was never written.** It POSTed to
   `/api/v1/generations/[id]/retry` — a 404 — and `generation.retry.requested` had no

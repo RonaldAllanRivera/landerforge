@@ -18,6 +18,7 @@ import { parseManifest, type TemplateManifest } from "@/lib/shared/manifest";
 import { outputContract } from "@/lib/shared/output-contract";
 import { buildMessages, buildSystem, stableStringify } from "@/lib/shared/prompt";
 import { buildSectionPlan, type SectionPlan } from "@/lib/shared/section-plan";
+import { unverifiedSourceSpecs } from "@/lib/shared/spec-guard";
 import { validateSection } from "@/lib/shared/validate-section";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inngest, SHARED_CONCURRENCY } from "../client";
@@ -113,7 +114,14 @@ export const generate = inngest.createFunction(
       const outcome = await scrape(row.url ?? "");
       if (outcome.status !== "ok") {
         await db.from("sources").update({ status: outcome.status }).eq("id", row.id);
-        return { ...row, status: outcome.status, blocks: null, raw_text: null };
+        return {
+          ...row,
+          status: outcome.status,
+          blocks: null,
+          raw_text: null,
+          scrapeReason: outcome.reason,
+          via: null,
+        };
       }
       const extracted = extractBlocks(outcome.html, manifest);
       await db
@@ -126,7 +134,14 @@ export const generate = inngest.createFunction(
           scraped_at: new Date().toISOString(),
         })
         .eq("id", row.id);
-      return { ...row, status: "ok", blocks: extracted.blocks, raw_text: extracted.rawText };
+      return {
+        ...row,
+        status: "ok",
+        blocks: extracted.blocks,
+        raw_text: extracted.rawText,
+        scrapeReason: null,
+        via: outcome.via,
+      };
     });
 
     const blocks: SourceBlock[] =
@@ -135,9 +150,24 @@ export const generate = inngest.createFunction(
         : [];
     const rawText = typeof source?.raw_text === "string" ? source.raw_text : "";
 
+    /**
+     * Record how the source arrived, or why it did not. Which rung of the ladder
+     * answered is the difference between "this cost nothing" and "this went through a
+     * paid browser", and a blocked scrape without its reason leaves the operator
+     * guessing between a bot wall, a dead URL and a missing token.
+     */
     if (source?.status !== "ok") {
       await step.run("note-no-source", async () => {
-        await appendRunNote(db, generationId, { kind: source ? "source_blocked" : "no_source" });
+        await appendRunNote(db, generationId, {
+          kind: source ? "source_blocked" : "no_source",
+          ...(source && "scrapeReason" in source && source.scrapeReason
+            ? { reason: source.scrapeReason }
+            : {}),
+        });
+      });
+    } else if ("via" in source && source.via && source.via !== "fetch") {
+      await step.run("note-scrape-via", async () => {
+        await appendRunNote(db, generationId, { kind: "scraped_via_browser", via: source.via });
       });
     }
 
@@ -163,23 +193,37 @@ export const generate = inngest.createFunction(
       await logStep(db, generationId, "brief", 0, briefCall.usage, briefCall.model);
 
       /**
-       * The guard runs BEFORE the write. Post-write, a failure would leave `brief`
-       * populated and the resume rule would send a retry straight into Step 2 on a
-       * brief that never passed it — silently disabling anti-fabrication.
+       * The guard runs BEFORE the write, so the brief that gets persisted has already
+       * passed it. Post-write, a failure would leave `brief` populated and the resume
+       * rule would send a retry straight into Step 2 on a brief that never passed —
+       * silently disabling anti-fabrication.
+       *
+       * Unverified specs are DROPPED rather than used to kill the run. The safety
+       * property is that a fabricated number never reaches the copy, and dropping
+       * achieves it exactly: the spec lint rejects any number not in allowedSpecs, so
+       * the model cannot use what was removed, and the section is flagged if it tries.
+       *
+       * Refusing the whole run achieved nothing more and cost a great deal. Measured on
+       * a real page: the model invented a lower bound for a focus range the page states
+       * only in words, the run died at the brief twice, and each attempt was billed. A
+       * retry re-runs the same call and invents it again, so the URL was simply
+       * unusable — a hard stop with no way past it.
        */
-      const unverified = result.allowedSpecs.filter(
-        (s) => s.origin === "source" && !rawText.includes(String(s.value)),
+      const unverified = unverifiedSourceSpecs(result.allowedSpecs, rawText);
+      const allowedSpecs = result.allowedSpecs.filter(
+        (spec) => !(spec.origin === "source" && unverified.includes(spec.label)),
       );
       if (unverified.length > 0) {
         await appendRunNote(db, generationId, {
-          kind: "spec_guard_failed",
-          specs: unverified.map((s) => s.label),
+          kind: "specs_dropped",
+          reason: "attributed to the source but not found in it",
+          specs: unverified,
         });
-        throw new NonRetriableError("allowedSpecs failed the raw_text guard");
       }
 
       const payload: BriefPayload = {
         ...result,
+        allowedSpecs,
         sectionPlan: buildSectionPlan(blocks, result.map, manifest),
       };
       await db.from("generations").update({ brief: payload }).eq("id", generationId);

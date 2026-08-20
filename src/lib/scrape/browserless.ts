@@ -1,14 +1,23 @@
 import "server-only";
 import { chromium } from "playwright-core";
+import { looksLikeChallenge } from "@/lib/shared/page-text";
+import { fetchDirect } from "./direct";
 
 /**
- * Scrape a lander through Browserless.
+ * Scrape a lander, cheapest rung first.
  *
- * The anti-bot ladder is two rungs on one protocol. Measured against the real
- * targets, protection is user-agent filtering only: a default fetcher UA gets 403, a
- * normal desktop Chrome UA gets 200 on the identical URL. So rung 1 clears them
- * provided it sends a realistic UA — which is required anyway for density
- * reproducibility.
+ *   1. a plain HTTP GET with a realistic user agent
+ *   2. Browserless
+ *   3. Browserless with stealth and a residential proxy
+ *
+ * Measured against the real targets, protection is user-agent filtering only: a default
+ * fetcher UA gets 403 and a normal desktop Chrome UA gets 200 on the identical URL. The
+ * pages are server-rendered, so rung 1 returns the same blocks a browser would — this
+ * used to start at rung 2, which meant a paid dependency with a concurrency cap doing
+ * the work of a GET, and the whole URL path was unavailable without a Browserless token.
+ *
+ * Rungs 2 and 3 remain for what a GET genuinely cannot do: a bot challenge, or content
+ * that only exists after JavaScript runs.
  */
 
 const UA =
@@ -17,38 +26,59 @@ const UA =
 const NAV_TIMEOUT_MS = 15_000;
 const SETTLE_TIMEOUT_MS = 5_000;
 
+export type ScrapeVia = "fetch" | "browser" | "browser_stealth";
+
 export type ScrapeOutcome =
-  | { status: "ok"; html: string }
-  | { status: "blocked" }
+  | { status: "ok"; html: string; via: ScrapeVia }
+  | { status: "blocked"; reason: string }
   | { status: "failed"; reason: string };
 
 export async function scrape(url: string): Promise<ScrapeOutcome> {
-  const base = process.env.BROWSERLESS_URL ?? "wss://production-sfo.browserless.io";
-  const token = process.env.BROWSERLESS_TOKEN ?? "";
+  const direct = await fetchDirect(url);
+  if (direct.status === "ok") return { status: "ok", html: direct.html, via: "fetch" };
+  // A bad URL, a private address or a 404 is not something a browser fixes.
+  if (direct.status === "failed") return { status: "failed", reason: direct.reason };
 
+  const token = process.env.BROWSERLESS_TOKEN ?? "";
+  if (!token) {
+    /**
+     * Blocked rather than failed, and that distinction matters: the run continues
+     * source-less with a note, and the paste fallback is offered. Reported honestly,
+     * because "no token" and "the site refused us" need different responses.
+     */
+    return {
+      status: "blocked",
+      reason: `${direct.reason} — and no BROWSERLESS_TOKEN is set, so a browser could not be tried`,
+    };
+  }
+
+  const base = process.env.BROWSERLESS_URL ?? "wss://production-sfo.browserless.io";
   // Both rungs speak CDP. /chromium/playwright is the Playwright-native route and a
   // connectOverCDP client cannot fall back to it.
-  const rungs = [
-    `${base}/chromium?token=${token}`,
-    `${base}/chromium/stealth?token=${token}&proxy=residential&proxyCountry=us`,
+  const rungs: Array<{ endpoint: string; via: ScrapeVia }> = [
+    { endpoint: `${base}/chromium?token=${token}`, via: "browser" },
+    {
+      endpoint: `${base}/chromium/stealth?token=${token}&proxy=residential&proxyCountry=us`,
+      via: "browser_stealth",
+    },
   ];
 
-  let lastReason = "unknown";
-  for (const endpoint of rungs) {
+  let lastReason = direct.reason;
+  for (const rung of rungs) {
     try {
-      const html = await fetchThrough(endpoint, url);
+      const html = await fetchThrough(rung.endpoint, url);
       if (looksLikeChallenge(html)) {
         lastReason = "bot challenge";
         continue;
       }
-      return { status: "ok", html };
+      return { status: "ok", html, via: rung.via };
     } catch (error) {
       lastReason = error instanceof Error ? error.message : String(error);
       if (isPermanent(lastReason)) return { status: "failed", reason: lastReason };
     }
   }
   return lastReason === "bot challenge"
-    ? { status: "blocked" }
+    ? { status: "blocked", reason: lastReason }
     : { status: "failed", reason: lastReason };
 }
 
@@ -96,10 +126,6 @@ async function autoScroll(page: { evaluate: (fn: () => Promise<void>) => Promise
       });
     })
     .catch(() => {});
-}
-
-function looksLikeChallenge(html: string): boolean {
-  return /just a moment|cf-browser-verification|checking your browser/i.test(html);
 }
 
 function isPermanent(reason: string): boolean {

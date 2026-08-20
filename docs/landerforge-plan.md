@@ -1156,7 +1156,7 @@ Update the marker when a phase lands; the CHANGELOG records the detail.
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Foundation + Advertorial V1 end-to-end | **Shipped** (`v0.1.0`) |
-| 2 | Scraping + density matching | Not started |
+| 2 | Scraping + density matching | **Shipped** — direct fetch first, Browserless only on escalation |
 | 2.5 | Screenshot upload + transcription | Not started |
 | 3 | Validation loop | **Validators shipped and exercised live**, corrective-loop fixtures outstanding |
 | 4 | Remaining manifests | Not started |
@@ -1190,9 +1190,34 @@ without spending an API call.
 - ✅ Accept, auth: a Google account **not** on the allowlist is rejected at signup and never gets an `auth.users` row; an allowlisted account signs in and its JWT carries `user_role` equal to the role its `allowed_emails` row specified (assert the value — a null claim means the access-token hook is missing its grants); a `viewer` is denied a generation by RLS even when the request is forged past the UI and even on a row they own; `/api/inngest` is reachable without a session while every app route is not
 - ✅ Accept, off-boarding: **Remove access** on `/admin` revokes the allowlist row, the role, and the account together, and the removed user cannot sign in again
 
-### Phase 2 — Scraping + density matching · Not started
+### Phase 2 — Scraping + density matching · **Shipped**
 
-- Browserless scrape step emitting the typed block array, Step 1 `blockMap` + the code-built `sectionPlan`, `allowedSpecs` with the appears-in-`raw_text` guard
+The ladder starts at a plain HTTP GET and only climbs when it has to:
+
+1. **`fetch` with a desktop Chrome user agent.** Enough for every target so far. The
+   protection on these pages is user-agent filtering — a default fetcher UA gets 403 and
+   Chrome gets 200 on the identical URL — and they are server-rendered, so this returns
+   the same blocks a browser would. Measured: 81 blocks and 11,830 characters from a live
+   lander with no `BROWSERLESS_TOKEN` set.
+2. **Browserless.** For a bot challenge or text that only exists after JavaScript runs.
+3. **Browserless with stealth and a residential proxy.**
+
+Starting at rung 2 was the original design, and it meant the entire URL path — the way
+this tool is meant to be used most of the time — was unavailable without a paid token,
+to do the work of a GET.
+
+Escalation is decided by two things worth stating: a challenge marker, and a
+visible-word count below a floor (an empty `<div id="root">` is a page whose content has
+not arrived). Machine markers like `cf-browser-verification` are proof on their own;
+human phrases like "just a moment" only count on a page with no prose around them,
+because an advertorial can legitimately contain that sentence and escalating on it buys
+a paid browser for a fetch that already worked.
+
+**Fetching from our own server made the URL field an SSRF surface** that Browserless had
+insulated us from. Literal private addresses are rejected, hostnames are checked against
+their resolved addresses, and redirects are followed by hand so each hop is re-checked —
+otherwise a public URL can redirect to `169.254.169.254` after the guard has passed.
+
 - ✅ Accept: given a live lander URL, output matches source section density ±10% and uses only source-derived numbers
 - ✅ Accept: a Cloudflare-protected URL degrades to `status = 'blocked'` and the paste-source fallback produces an equivalent run
 - ✅ Accept: simulated Browserless outage mid-run completes source-less, with a `no_source` entry in `run_notes` rendered on the review screen

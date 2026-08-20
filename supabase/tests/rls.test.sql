@@ -5,7 +5,7 @@
 -- asserts a DENIAL, not just an allow. Seeing a button disappear is not evidence.
 
 begin;
-select plan(17);
+select plan(21);
 
 -- ── Impersonation helpers ───────────────────────────────────────────────────
 -- Defined inside this transaction, so they vanish on rollback. A function that
@@ -86,6 +86,11 @@ select '22222222-2222-2222-2222-222222222222', project_id, template_id from fixt
 create temp table gen as
 select id from public.generations
 where project_id = (select project_id from fixture) order by id limit 1;
+
+-- A generated section to edit. The worker writes these under the secret key; the
+-- policy added in 0009 is what decides whether a reviewer may change one.
+insert into public.generation_sections (generation_id, section_id, output, status)
+select id, 'hero', '{"page_title":"original"}'::jsonb, 'done' from gen;
 
 grant select on fixture, gen to authenticated;
 
@@ -239,6 +244,49 @@ select results_eq(
 select lives_ok(
   $$ insert into public.allowed_emails (email, role) values ('new@example.com', 'editor') $$,
   'admin manages the allowlist'
+);
+
+-- ── Editing generated copy ──────────────────────────────────────────────────
+-- Review is not read-only: a flagged section is meant to be fixed. The gate is the
+-- same one generations and sources use — role, not ownership.
+
+select tests.authenticate_as('44444444-4444-4444-4444-444444444444', 'viewer');
+
+select isnt_empty(
+  $$ select section_id from public.generation_sections where generation_id = (select id from gen) $$,
+  'viewer reads generated copy'
+);
+
+-- lives_ok, not throws_ok: a failing UPDATE policy matches zero rows rather than
+-- raising, so the assertion has to be that NOTHING CHANGED.
+select lives_ok(
+  $$ update public.generation_sections set output = '{"page_title":"viewer was here"}'::jsonb
+     where generation_id = (select id from gen) $$,
+  'viewer update raises nothing — which is exactly why the next assertion exists'
+);
+
+select tests.clear_authentication();
+
+select is(
+  (select output->>'page_title' from public.generation_sections
+    where generation_id = (select id from gen) and section_id = 'hero'),
+  'original',
+  'viewer silently changed nothing'
+);
+
+select tests.authenticate_as('22222222-2222-2222-2222-222222222222', 'editor');
+
+update public.generation_sections
+   set output = '{"page_title":"edited by hand"}'::jsonb
+ where generation_id = (select id from gen);
+
+select tests.clear_authentication();
+
+select is(
+  (select output->>'page_title' from public.generation_sections
+    where generation_id = (select id from gen) and section_id = 'hero'),
+  'edited by hand',
+  'editor may fix a flagged section'
 );
 
 -- ── Anonymous access is revoked outright ────────────────────────────────────

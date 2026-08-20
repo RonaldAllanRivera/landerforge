@@ -1080,14 +1080,34 @@ A corrected transcript is still valid ground truth for the `allowedSpecs` guard,
 
 ### 2. Generation / review screen (`/generations/[id]`)
 
-- Renders sections **from `manifest_snapshot`**, in CMS order, mirroring the screenshots' section labels — so copying into LogicHub is a top-to-bottom walk. `display` fields render as position markers with their intended setting, so toggles and image slots don't desynchronize the walk.
-- RSC fetches the initial state (`params` is async in Next 15) and hands it to a client component that subscribes to **both** `generation_sections` (section progress) and `generations` filtered to this id (status, `error_message`, `run_notes`, cost), refetching on event rather than reading the payload.
-- A **run notes panel** above the sections renders `run_notes` — source blocked or absent, density divergences, spec conflicts — so run-level findings are visible rather than buried.
-- Per field: the copy with bold **rendered** (never shown as raw asterisks), a word-count badge (green in range / red out, against the brief's target), validation flags inline from `violations`, and a **Copy button that respects `markdownBold`** — on `markdownBold: false` fields it strips `**` before writing to the clipboard, so the operator pastes clean text and re-applies bold with the CMS toolbar using the rendered version on screen as the guide. Markdown links survive the strip. Scaffolded fields copy with their assembled markup intact.
-- Per section: "Regenerate section" with an optional feedback textarea.
-- Flagged sections visibly marked with the violation list.
-- **Failed runs** show which step failed, the `error_message`, and a "Retry run" button that fires `generation.retry.requested { generationId, attempt }` — a distinct event with its own idempotency key, because re-firing the original event would be deduplicated for 24h. The handler re-claims the `failed` row and regenerates only the sections that aren't already `done`.
-- Run cost and cache-hit rate displayed from `generation_steps`.
+**It is the CMS form, not a report.** Panels in CMS order, the same labels, and the same
+control for each field — a text input where the CMS has one, a textarea where it has one,
+review cards with Add and Remove. The first version listed everything as read-only lines
+with a "not generated" badge against each display marker, eight of them in Hero alone,
+and printed a repeating section's parallel arrays as raw JSON. The point of this screen
+is that it can be read side by side with the CMS while somebody copies across, and it
+could not be.
+
+`displayKind` on a field says whether a non-generated marker is a toggle, an image slot
+or a relation picker. Images are omitted for now; toggles render as visibly inert
+switches, because a control that looks live and changes nothing is worse than one that
+is honestly off-limits.
+
+**Copy is editable, and editing re-judges it.** A flagged section exists to be fixed, and
+sending the operator to the CMS to fix it means the violation list never clears. Saving a
+section re-runs `validateSection` — the same function the worker uses, which is why it
+lives in `lib/shared` — against the brief that section was written for, not against a
+freshly derived one. `status` and `violations` are recomputed server-side and never
+accepted from the browser, so a flag cannot be cleared by editing the badge instead of
+the copy.
+
+A repeating section stores parallel arrays, one entry per instance, so add and remove
+touch every generated field together or instance 2's name pairs with instance 3's text.
+Reordering is deliberately not offered: position is the only identity these entries have.
+
+`edited_at` and `edited_by` are stamped by a database trigger from the session, not sent
+by the client. The worker writes the same rows under the secret key where `auth.uid()`
+is null, so a generated section stays unstamped and only a human edit marks one.
 
 ### 4. Costs (`/costs`)
 

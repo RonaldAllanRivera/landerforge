@@ -29,6 +29,10 @@ export const PRODUCT_NAME_FORMATS = ["bold", "plain", "none"] as const;
 /** The complete set of permitted links in a field. There is no global link rule. */
 export const LINK_POLICIES = ["none", "product_name", "free_anchor"] as const;
 
+/** How a non-generated CMS field is presented. See TemplateField.displayKind. */
+export const DISPLAY_KINDS = ["toggle", "image", "relation"] as const;
+export type DisplayKind = (typeof DISPLAY_KINDS)[number];
+
 export const TemplateFieldSchema = z
   .object({
     /** SECTION-LOCAL, e.g. "page_title" — never "hero.page_title". */
@@ -57,6 +61,18 @@ export const TemplateFieldSchema = z
 
     /** Required when type === "scaffolded". Keyed by variant name. */
     lineTemplates: z.record(z.string(), z.string()).optional(),
+
+    /**
+     * What a `display` field actually looks like in the CMS.
+     *
+     * These are position markers so the review screen mirrors the CMS panel order, but
+     * "marker" is not enough to render one: a toggle, an image slot and a relation
+     * picker look nothing alike, and showing all three as an identical "not generated"
+     * row is what made the screen unreadable. Declared rather than inferred from the
+     * key, because guessing from a name is wrong the first time a field is called
+     * something else.
+     */
+    displayKind: z.enum(DISPLAY_KINDS).optional(),
 
     /** Skip the spec check — relative timestamps ("11 hours ago") are not specs. */
     specPolicy: z.literal("exempt").optional(),

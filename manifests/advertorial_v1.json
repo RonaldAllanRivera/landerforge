@@ -26,7 +26,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         },
         {
           "key": "page_title",
@@ -51,7 +52,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "image"
         },
         {
           "key": "summary",
@@ -77,7 +79,8 @@
           "productNameFormat": "none",
           "linkPolicy": "none",
           "voice": "brand_we",
-          "notes": "Select. The bio ships on the page but lives on the Authors resource, so it is never generated."
+          "notes": "Select. The bio ships on the page but lives on the Authors resource, so it is never generated.",
+          "displayKind": "relation"
         },
         {
           "key": "show_advertorial_topbar",
@@ -87,7 +90,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         },
         {
           "key": "show_brand_logo",
@@ -97,7 +101,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         },
         {
           "key": "show_date_in_byline",
@@ -107,7 +112,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         }
       ],
       "tier": "standard"
@@ -151,7 +157,7 @@
             },
             "join": "\n\n"
           },
-          "notes": "One WYSIWYG blob, not a repeating section \u2014 the CMS accepts a single paste. Rendered bold, so the copy button strips ** and the operator re-applies with the toolbar. Skim test: bold text alone must carry the argument."
+          "notes": "One WYSIWYG blob, not a repeating section — the CMS accepts a single paste. Rendered bold, so the copy button strips ** and the operator re-applies with the toolbar. Skim test: bold text alone must carry the argument."
         },
         {
           "key": "outro",
@@ -209,7 +215,7 @@
             "positive": "- <span class=\"fa-li positive\"><i class=\"fa-solid fa-circle-check\"></i></span> {copy}",
             "negative": "- <span class=\"fa-li negative\"><i class=\"fa-solid fa-circle-check\"></i></span> {copy}"
           },
-          "notes": "Markup taken from the stored CMS value. The negative variant keeps fa-circle-check \u2014 fa-circle-xmark appears nowhere in production."
+          "notes": "Markup taken from the stored CMS value. The negative variant keeps fa-circle-check — fa-circle-xmark appears nowhere in production."
         },
         {
           "key": "sidebar_cta_text",
@@ -234,7 +240,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "image"
         },
         {
           "key": "show_author_card",
@@ -244,7 +251,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         }
       ]
     },
@@ -286,7 +294,7 @@
           "productNameFormat": "plain",
           "linkPolicy": "none",
           "voice": "reviewer",
-          "notes": "One or two in desperation/last-resort framing. Content tokens are permitted here \u2014 the live pages put {{discountValue}} inside user comments."
+          "notes": "One or two in desperation/last-resort framing. Content tokens are permitted here — the live pages put {{discountValue}} inside user comments."
         },
         {
           "key": "reviewer_photo",
@@ -296,7 +304,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "image"
         }
       ],
       "tier": "standard"
@@ -352,7 +361,8 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "toggle"
         },
         {
           "key": "exit_pop",
@@ -362,11 +372,12 @@
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
-          "voice": "brand_we"
+          "voice": "brand_we",
+          "displayKind": "relation"
         }
       ],
       "tier": "standard"
     }
   ],
-  "_tiers": "cta and sidebar are short, tightly-constrained strings, so they run on the fast model. content and hero are prose and stay on standard. Verify on /costs that the swap actually saved money before extending it \u2014 mixing models within a run costs some cache efficiency."
+  "_tiers": "cta and sidebar are short, tightly-constrained strings, so they run on the fast model. content and hero are prose and stay on standard. Verify on /costs that the swap actually saved money before extending it — mixing models within a run costs some cache efficiency."
 }

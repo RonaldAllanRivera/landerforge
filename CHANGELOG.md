@@ -9,6 +9,33 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **The review screen is now the CMS form.** It listed every field as a read-only line
+  with a "not generated" badge beside the eight display markers in Hero alone, and
+  rendered a repeating section's parallel arrays as raw JSON. It now mirrors
+  `docs/cms-screenshots/advertorial.png` panel for panel: collapsible sections in CMS
+  order, the same labels, a text input where the CMS has one and a textarea where it has
+  one, review cards with Add and Remove, and the section's presence toggle in its
+  header. Image fields are omitted entirely for now.
+- **CRUD on generated copy.** A flagged section is meant to be fixed, and sending the
+  operator to the CMS to do it means the violation list never clears and the next run
+  has nothing to learn from. Sections are editable in place, save per section, and
+  **are re-validated server-side on save** — by the same `validateSection` the worker
+  uses, extracted to `lib/shared` so the two cannot drift. Fixing a missing `%` on a CTA
+  moves it from `flagged` to `done` with its violations recomputed, not cleared.
+- **`edited_at` / `edited_by` on `generation_sections`**, stamped by a database trigger
+  from the session rather than accepted from the caller, so a column grant cannot be
+  used to attribute an edit to somebody else. The worker writes under the secret key
+  where `auth.uid()` is null, so a generated section stays unstamped and only a human
+  edit sets them — "flagged by the validator" and "a person has been in here" are
+  different states.
+- **`displayKind` on manifest fields** (`toggle` / `image` / `relation`). A toggle, an
+  image slot and a relation picker look nothing alike in the CMS, and rendering all
+  three as an identical row is what made the screen unreadable. Declared rather than
+  inferred from the key, which would be wrong the first time a field is renamed.
+- Four more pgTAP tests, asserting that a viewer's update to a section **silently
+  changes nothing** (a failing UPDATE policy matches zero rows rather than raising, so
+  the assertion has to be about the data) and that an editor may fix a flagged section.
+
 - **First real generations, end to end.** Everything below came out of running four of
   them; the pipeline had never called the Anthropic API before, and none of the defects
   it found were visible to review, to typecheck, or to 71 passing tests. The first run

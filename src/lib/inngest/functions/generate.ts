@@ -13,11 +13,12 @@ import { effortFor, loadSettings, modelForTier, type Settings } from "@/lib/core
 import { scrape } from "@/lib/scrape/browserless";
 import { extractBlocks } from "@/lib/scrape/extract";
 import { type SourceBlock, SourceBlockSchema } from "@/lib/shared/blocks";
-import { type FieldValue, lintField, type Violation } from "@/lib/shared/lints";
+import type { Violation } from "@/lib/shared/lints";
 import { parseManifest, type TemplateManifest } from "@/lib/shared/manifest";
 import { outputContract } from "@/lib/shared/output-contract";
 import { buildMessages, buildSystem, stableStringify } from "@/lib/shared/prompt";
 import { buildSectionPlan, type SectionPlan } from "@/lib/shared/section-plan";
+import { validateSection } from "@/lib/shared/validate-section";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inngest, SHARED_CONCURRENCY } from "../client";
 
@@ -224,7 +225,11 @@ export const generate = inngest.createFunction(
          * would make Inngest retry the call identically, without the corrective
          * feedback, fighting this loop.
          */
-        violations = validateSection(manifest, section.id, output, brief, blocks);
+        violations = validateSection(
+          { manifest, allowedSpecs: brief.allowedSpecs, sectionPlan: brief.sectionPlan, blocks },
+          section.id,
+          output,
+        );
         /**
          * Stop on "nothing the model can fix", not on "nothing wrong". An internal
          * violation means one of our own checks threw; quoting it back would spend the
@@ -380,35 +385,6 @@ function parseJsonResponse<T>(response: Anthropic.Messages.Message): T {
   const textBlock = response.content.find((c): c is Anthropic.TextBlock => c.type === "text");
   const json = /\{[\s\S]*\}/.exec(textBlock?.text ?? "{}")?.[0] ?? "{}";
   return JSON.parse(json) as T;
-}
-
-function validateSection(
-  manifest: TemplateManifest,
-  sectionId: string,
-  output: Record<string, unknown>,
-  brief: BriefPayload,
-  blocks: SourceBlock[],
-): Violation[] {
-  const section = manifest.sections.find((s) => s.id === sectionId);
-  if (!section) return [];
-  const plan = brief.sectionPlan.find((s) => s.sectionId === sectionId);
-
-  return section.fields.flatMap((field) => {
-    const value = output[field.key];
-    if (value === undefined) return [];
-    return lintField({
-      manifest,
-      field,
-      address: `${sectionId}.${field.key}`,
-      // Cast, because this is JSON.parse output. lintField gates the shape at runtime
-      // before any check reads it, which is what makes the cast safe rather than hopeful.
-      value: value as FieldValue,
-      plan: plan?.fields[field.key],
-      blocks,
-      allowedSpecs: brief.allowedSpecs,
-      productNameAliases: [],
-    });
-  });
 }
 
 async function appendRunNote(db: Db, generationId: number, note: Record<string, unknown>) {

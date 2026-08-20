@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { sectionIdOf } from "@/lib/shared/costs";
 import { parseManifest } from "@/lib/shared/manifest";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { ReviewScreen } from "./review-client";
 
 /** RSC fetches the initial state; the client component subscribes for deltas. */
@@ -10,6 +10,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const generationId = Number(id);
   const supabase = await createClient();
+  const actor = await requireUser();
 
   const { data: generation } = await supabase
     .from("generations")
@@ -20,7 +21,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
 
   const { data: sections } = await supabase
     .from("generation_sections")
-    .select("section_id, output, status, violations")
+    .select("section_id, output, status, violations, edited_at")
     .eq("generation_id", generationId);
 
   /**
@@ -52,6 +53,9 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
       runNotes={(generation.run_notes as unknown[]) ?? []}
       costUsd={generation.total_cost_usd}
       spend={spend}
+      // The policy decides for real; this only avoids offering a control that would
+      // be refused, which reads as a broken screen rather than a permission.
+      canEdit={actor?.role === "admin" || actor?.role === "editor"}
       manifest={parseManifest(generation.manifest_snapshot)}
       initialSections={sections ?? []}
     />

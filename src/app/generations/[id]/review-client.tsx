@@ -1,16 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { assembleScaffold, type Violation } from "@/lib/shared/lints";
-import type { TemplateField, TemplateManifest } from "@/lib/shared/manifest";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import type { Violation } from "@/lib/shared/lints";
+import type { TemplateField, TemplateManifest, TemplateSection } from "@/lib/shared/manifest";
 import { countWords } from "@/lib/shared/normalize";
+import {
+  addInstance,
+  canAddInstance,
+  canRemoveInstance,
+  generatedFields,
+  instanceCount,
+  isRepeating,
+  parseScaffold,
+  readField,
+  removeInstance,
+  renderFieldValue,
+  type SectionOutput,
+  writeField,
+} from "@/lib/shared/section-io";
 import { createClient } from "@/lib/supabase/client";
+import { saveSectionAction } from "./actions";
 
 interface SectionRow {
   section_id: string;
-  output: Record<string, unknown> | null;
+  output: SectionOutput | null;
   status: string;
   violations: Violation[] | null;
+  edited_at?: string | null;
 }
 
 interface Props {
@@ -19,10 +35,10 @@ interface Props {
   errorMessage: string | null;
   runNotes: unknown[];
   costUsd: number | null;
-  /** Spend and attempt count per section id. */
   spend: Record<string, { usd: number; attempts: number; model: string | null }>;
   manifest: TemplateManifest;
   initialSections: SectionRow[];
+  canEdit: boolean;
 }
 
 export function ReviewScreen(props: Props) {
@@ -45,7 +61,7 @@ export function ReviewScreen(props: Props) {
         supabase.from("generations").select("status").eq("id", props.generationId).maybeSingle(),
         supabase
           .from("generation_sections")
-          .select("section_id, output, status, violations")
+          .select("section_id, output, status, violations, edited_at")
           .eq("generation_id", props.generationId),
       ]);
       if (run) setStatus(run.status);
@@ -91,6 +107,7 @@ export function ReviewScreen(props: Props) {
           {status}
         </span>
         {props.costUsd !== null && <> · ${Number(props.costUsd).toFixed(3)}</>}
+        {!props.canEdit && <> · read-only (viewers cannot change copy)</>}
       </p>
 
       {status === "failed" && (
@@ -123,57 +140,260 @@ export function ReviewScreen(props: Props) {
 
       {/* Sections render in manifest order — which follows the CMS's rendered panel
           order — so copying into the CMS is a straight top-to-bottom walk. */}
-      {props.manifest.sections.map((section) => {
-        const row = bySection.get(section.id);
-        const spent = props.spend[section.id];
-        return (
-          <section key={section.id}>
-            <h2>
-              {section.label}{" "}
-              {row && (
-                <span className={`badge ${row.status === "flagged" ? "flag" : "ok"}`}>
-                  {row.status}
-                </span>
-              )}{" "}
-              {spent && (
-                /* An expensive section that also failed is the one worth changing
-                   something for; a cheap one that failed rarely is not. */
-                <span className={`badge ${spent.attempts > 1 ? "flag" : ""}`}>
-                  ${spent.usd.toFixed(3)}
-                  {spent.attempts > 1 && ` · ${spent.attempts} attempts`}
-                </span>
-              )}
-            </h2>
-            <div className="card">
-              {section.fields.map((field) => (
-                <FieldRow
-                  key={field.key}
-                  field={field}
-                  value={row?.output?.[field.key]}
-                  violations={(row?.violations ?? []).filter((v) =>
-                    v.address.endsWith(`.${field.key}`),
-                  )}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      {props.manifest.sections.map((section) => (
+        <SectionPanel
+          key={section.id}
+          section={section}
+          row={bySection.get(section.id)}
+          spend={props.spend[section.id]}
+          generationId={props.generationId}
+          canEdit={props.canEdit}
+        />
+      ))}
     </main>
+  );
+}
+
+/** "Reviews" -> "Review", for a single entry's header and the add button. */
+function singular(label: string): string {
+  return label.replace(/ies$/, "y").replace(/s$/, "");
+}
+
+function SectionPanel({
+  section,
+  row,
+  spend,
+  generationId,
+  canEdit,
+}: {
+  section: TemplateSection;
+  row: SectionRow | undefined;
+  spend?: { usd: number; attempts: number; model: string | null };
+  generationId: number;
+  canEdit: boolean;
+}) {
+  /**
+   * A local working copy. Editing straight into the fetched row would make every
+   * realtime refetch overwrite whatever is half-typed, and a run finishing while
+   * someone is mid-sentence is the normal case, not an edge one.
+   */
+  const [draft, setDraft] = useState<SectionOutput | null>(row?.output ?? null);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+  const [open, setOpen] = useState(true);
+
+  // Adopt server changes only while there is nothing local to lose.
+  useEffect(() => {
+    if (!dirty) setDraft(row?.output ?? null);
+  }, [row?.output, dirty]);
+
+  const output = dirty ? draft : (row?.output ?? null);
+  const count = instanceCount(section, output);
+  const violations = row?.violations ?? [];
+  const fields = generatedFields(section);
+
+  const update = useCallback(
+    (fieldKey: string, instance: number, value: unknown) => {
+      setDraft((current) => writeField(section, current ?? output, fieldKey, instance, value));
+      setDirty(true);
+      setError(null);
+    },
+    [section, output],
+  );
+
+  const save = () => {
+    startSave(async () => {
+      const result = await saveSectionAction(generationId, section.id, draft ?? {});
+      if (result.ok) {
+        setDirty(false);
+        setError(null);
+      } else {
+        setError(result.message ?? "Could not save.");
+      }
+    });
+  };
+
+  const hasEditableFields = fields.length > 0;
+
+  return (
+    <section>
+      <div className="panel-head">
+        <button type="button" className="panel-toggle" onClick={() => setOpen((v) => !v)}>
+          <span aria-hidden>{open ? "▾" : "▸"}</span> {section.label}
+        </button>
+        <span className="row">
+          {row && (
+            <span className={`badge ${row.status === "flagged" ? "flag" : "ok"}`}>
+              {row.status}
+            </span>
+          )}
+          {row?.edited_at && <span className="badge">edited</span>}
+          {spend && (
+            /* An expensive section that also failed is the one worth changing
+               something for; a cheap one that failed rarely is not. */
+            <span className={`badge ${spend.attempts > 1 ? "flag" : ""}`}>
+              ${spend.usd.toFixed(3)}
+              {spend.attempts > 1 && ` · ${spend.attempts} attempts`}
+            </span>
+          )}
+          {section.presenceToggleLabel && (
+            <CmsToggle label={section.presenceToggleLabel} on={section.defaultPresent} />
+          )}
+        </span>
+      </div>
+
+      {open && (
+        <div className="card">
+          {!hasEditableFields && (
+            <p className="muted">
+              Nothing is generated for this section — it is here so the panel order matches the CMS.
+            </p>
+          )}
+
+          {isRepeating(section) ? (
+            <>
+              {Array.from({ length: count }, (_, instance) => (
+                /* The index IS the identity here: instances are positions in parallel
+                   arrays, and there is no stable id to key on. Reordering is not
+                   offered for exactly that reason. */
+                // biome-ignore lint/suspicious/noArrayIndexKey: position is the identity
+                <div className="instance" key={`${section.id}-${instance}`}>
+                  <div className="field-head">
+                    <span className="field-label">
+                      {singular(section.label)} {instance + 1}
+                    </span>
+                    {canEdit && canRemoveInstance(section, count) && (
+                      <button
+                        type="button"
+                        className="ghost"
+                        onClick={() => {
+                          setDraft(removeInstance(section, output, instance));
+                          setDirty(true);
+                        }}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  {section.fields.map((field) => (
+                    <FieldRow
+                      key={field.key}
+                      field={field}
+                      section={section}
+                      output={output}
+                      instance={instance}
+                      violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
+                      canEdit={canEdit}
+                      onChange={update}
+                    />
+                  ))}
+                </div>
+              ))}
+              {canEdit && (
+                <div className="field-head">
+                  <button
+                    type="button"
+                    className="ghost"
+                    disabled={!canAddInstance(section, count)}
+                    onClick={() => {
+                      setDraft(addInstance(section, output));
+                      setDirty(true);
+                    }}
+                  >
+                    + Add {singular(section.label)}
+                  </button>
+                  <span className="muted">
+                    {count} of {section.repeat?.[0]}–{section.repeat?.[1]}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            section.fields.map((field) => (
+              <FieldRow
+                key={field.key}
+                field={field}
+                section={section}
+                output={output}
+                instance={0}
+                violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
+                canEdit={canEdit}
+                onChange={update}
+              />
+            ))
+          )}
+
+          {/* Violations that belong to no visible field — a whole-section complaint. */}
+          {violations
+            .filter((v) => !section.fields.some((f) => v.address.endsWith(`.${f.key}`)))
+            .map((v) => (
+              <p className="violation" key={`${v.category}:${v.message}`}>
+                [{v.category}] {v.message}
+              </p>
+            ))}
+
+          {canEdit && hasEditableFields && (
+            <div className="field-head save-row">
+              <span className="muted">
+                {/* Silence when nothing has happened. "Saved." on a section nobody has
+                    touched claims an edit that never took place. */}
+                {error ? (
+                  <span className="violation">{error}</span>
+                ) : dirty ? (
+                  "Unsaved changes. Saving re-runs the checks on what you wrote."
+                ) : row?.edited_at ? (
+                  `Edited by hand ${new Date(row.edited_at).toLocaleString()}`
+                ) : (
+                  ""
+                )}
+              </span>
+              <button type="button" onClick={save} disabled={!dirty || saving}>
+                {saving ? "Saving…" : "Save section"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * A CMS-side switch, shown because the CMS shows it and the panels have to line up —
+ * but not editable here. This tool writes copy; it does not own the page's display
+ * settings, and a control that looks live and changes nothing is worse than an
+ * honest one that is visibly off-limits.
+ */
+function CmsToggle({ label, on }: { label: string; on?: boolean }) {
+  return (
+    <span className="cms-toggle" title="Set in the CMS, not here">
+      <span className="muted">{label}</span>
+      <span className={`switch ${on ? "on" : ""}`} aria-hidden />
+    </span>
   );
 }
 
 function FieldRow({
   field,
-  value,
+  section,
+  output,
+  instance,
   violations,
+  canEdit,
+  onChange,
 }: {
   field: TemplateField;
-  value: unknown;
+  section: TemplateSection;
+  output: SectionOutput | null;
+  instance: number;
   violations: Violation[];
+  canEdit: boolean;
+  onChange: (fieldKey: string, instance: number, value: unknown) => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const rendered = renderValue(field, value);
+  const raw = readField(section, output, field.key, instance);
+  const text = useMemo(() => renderFieldValue(field, raw), [field, raw]);
 
   const copy = useCallback(() => {
     /**
@@ -182,45 +402,88 @@ function FieldRow({
      * see what to emphasise, and the clipboard gets clean text they re-bold with the
      * toolbar. Markdown links survive — the {{clickURL}} token has to reach the paste.
      */
-    const text = field.markdownBold ? rendered : rendered.replace(/\*\*/g, "");
-    void navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(field.markdownBold ? text : text.replace(/\*\*/g, ""));
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
-  }, [field.markdownBold, rendered]);
+  }, [field.markdownBold, text]);
 
-  // display fields are position markers so the CMS walk stays aligned — the CMS shows
-  // toggles and image slots interleaved with copy, not clustered.
   if (!field.generate) {
+    // Images are out of scope for now and add nothing but noise to a copy review.
+    if (field.displayKind === "image") return null;
+    if (field.displayKind === "toggle") {
+      return (
+        <div className="field">
+          <div className="field-head">
+            <span className="field-label">{field.label}</span>
+            <CmsToggle label="" />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="field">
         <div className="field-head">
           <span className="field-label">{field.label}</span>
-          <span className="badge">not generated</span>
+          <span className="muted">chosen in the CMS</span>
         </div>
       </div>
     );
   }
 
-  const words = countWords(rendered);
+  const words = countWords(text);
   const target = field.fallbackWordTarget;
   const inRange = !target || (words >= target[0] && words <= target[1]);
+  const overLimit = field.charLimit !== undefined && text.length > field.charLimit;
+
+  /**
+   * The control matches the CMS control, because the point of this screen is that the
+   * two can be read side by side. A scaffolded field is a plain markdown box in the
+   * CMS even though it is stored here as copy slots, so it is edited as text and
+   * parsed back on the way in.
+   */
+  const multiline = field.type !== "text";
+
+  const emit = (next: string) =>
+    onChange(field.key, instance, field.type === "scaffolded" ? parseScaffold(field, next) : next);
 
   return (
     <div className="field">
       <div className="field-head">
         <span className="field-label">{field.label}</span>
         <span className="row">
+          {field.charLimit !== undefined && (
+            <span className={`badge ${overLimit ? "flag" : ""}`}>
+              {text.length}/{field.charLimit}
+            </span>
+          )}
           {target && (
             <span className={`badge ${inRange ? "ok" : "flag"}`}>
               {words}w / {target[0]}–{target[1]}
             </span>
           )}
-          <button type="button" className="ghost" onClick={copy} disabled={!rendered}>
+          <button type="button" className="ghost" onClick={copy} disabled={!text}>
             {copied ? "Copied" : "Copy"}
           </button>
         </span>
       </div>
-      <p className="copy-value">{rendered || <span className="muted">pending…</span>}</p>
+
+      {multiline ? (
+        <textarea
+          value={text}
+          readOnly={!canEdit}
+          rows={field.type === "markdown" ? 12 : 4}
+          onChange={(e) => emit(e.target.value)}
+          placeholder={canEdit ? "" : "pending…"}
+        />
+      ) : (
+        <input
+          type="text"
+          value={text}
+          readOnly={!canEdit}
+          onChange={(e) => emit(e.target.value)}
+        />
+      )}
+
       {violations.map((v) => (
         <p className="violation" key={`${v.category}:${v.message}`}>
           [{v.category}] {v.message}
@@ -228,18 +491,4 @@ function FieldRow({
       ))}
     </div>
   );
-}
-
-function renderValue(field: TemplateField, value: unknown): string {
-  if (value === undefined || value === null) return "";
-  if (typeof value === "string") return value;
-  // Scaffolded fields: code assembles the markup, so it is correct by construction
-  // rather than by a byte-for-byte retry loop.
-  if (field.type === "scaffolded" && typeof value === "object" && "items" in value) {
-    return assembleScaffold(
-      (value as { items: Array<{ variant: string; copy: string }> }).items,
-      field.lineTemplates ?? {},
-    );
-  }
-  return JSON.stringify(value, null, 2);
 }

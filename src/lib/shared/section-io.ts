@@ -25,6 +25,25 @@ export function generatedFields(section: TemplateSection): TemplateField[] {
 }
 
 /**
+ * Does THIS field vary per instance?
+ *
+ * A repeating section can hold a field that occurs once — a heading above the cards —
+ * and treating it as an array would repeat it per card and make add/remove edit it.
+ */
+export function fieldRepeats(section: TemplateSection, field: TemplateField): boolean {
+  return isRepeating(section) && field.repeats !== false;
+}
+
+/** The generated fields that actually vary per instance. */
+export function repeatingFields(section: TemplateSection): TemplateField[] {
+  return generatedFields(section).filter((f) => fieldRepeats(section, f));
+}
+
+function fieldByKey(section: TemplateSection, key: string): TemplateField | undefined {
+  return section.fields.find((f) => f.key === key);
+}
+
+/**
  * How many instances the stored output actually holds.
  *
  * The longest array across the generated fields, not the shortest: a field the model
@@ -33,7 +52,7 @@ export function generatedFields(section: TemplateSection): TemplateField[] {
 export function instanceCount(section: TemplateSection, output: SectionOutput | null): number {
   if (!isRepeating(section)) return 1;
   let longest = 0;
-  for (const field of generatedFields(section)) {
+  for (const field of repeatingFields(section)) {
     const value = output?.[field.key];
     if (Array.isArray(value)) longest = Math.max(longest, value.length);
   }
@@ -49,7 +68,8 @@ export function readField(
   instance: number,
 ): unknown {
   const value = output?.[fieldKey];
-  if (!isRepeating(section)) return value;
+  const field = fieldByKey(section, fieldKey);
+  if (!field || !fieldRepeats(section, field)) return value;
   return Array.isArray(value) ? value[instance] : instance === 0 ? value : undefined;
 }
 
@@ -62,7 +82,8 @@ export function writeField(
   value: unknown,
 ): SectionOutput {
   const next: SectionOutput = { ...(output ?? {}) };
-  if (!isRepeating(section)) {
+  const field = fieldByKey(section, fieldKey);
+  if (!field || !fieldRepeats(section, field)) {
     next[fieldKey] = value;
     return next;
   }
@@ -88,7 +109,8 @@ export function canRemoveInstance(section: TemplateSection, count: number): bool
 export function addInstance(section: TemplateSection, output: SectionOutput | null): SectionOutput {
   const count = instanceCount(section, output);
   const next: SectionOutput = { ...(output ?? {}) };
-  for (const field of generatedFields(section)) {
+  // Only the fields that vary: a once-per-section heading must not gain an entry.
+  for (const field of repeatingFields(section)) {
     const current = next[field.key];
     const list = Array.isArray(current) ? [...current] : [];
     while (list.length < count) list.push("");
@@ -106,7 +128,7 @@ export function removeInstance(
 ): SectionOutput {
   const count = instanceCount(section, output);
   const next: SectionOutput = { ...(output ?? {}) };
-  for (const field of generatedFields(section)) {
+  for (const field of repeatingFields(section)) {
     const current = next[field.key];
     const list = Array.isArray(current) ? [...current] : [];
     while (list.length < count) list.push("");

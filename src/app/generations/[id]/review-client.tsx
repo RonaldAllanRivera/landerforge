@@ -8,6 +8,7 @@ import {
   addInstance,
   canAddInstance,
   canRemoveInstance,
+  fieldRepeats,
   generatedFields,
   instanceCount,
   isRepeating,
@@ -303,6 +304,22 @@ function SectionPanel({
 
           {isRepeating(section) ? (
             <>
+              {/* Fields that occur once for the whole panel sit above the cards, which
+                  is where the CMS puts them. */}
+              {section.fields
+                .filter((field) => !fieldRepeats(section, field))
+                .map((field) => (
+                  <FieldRow
+                    key={field.key}
+                    field={field}
+                    section={section}
+                    output={output}
+                    instance={0}
+                    violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
+                    canEdit={canEdit}
+                    onChange={update}
+                  />
+                ))}
               {Array.from({ length: count }, (_, instance) => (
                 /* The index IS the identity here: instances are positions in parallel
                    arrays, and there is no stable id to key on. Reordering is not
@@ -326,18 +343,20 @@ function SectionPanel({
                       </button>
                     )}
                   </div>
-                  {section.fields.map((field) => (
-                    <FieldRow
-                      key={field.key}
-                      field={field}
-                      section={section}
-                      output={output}
-                      instance={instance}
-                      violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
-                      canEdit={canEdit}
-                      onChange={update}
-                    />
-                  ))}
+                  {section.fields
+                    .filter((field) => fieldRepeats(section, field) || !field.generate)
+                    .map((field) => (
+                      <FieldRow
+                        key={field.key}
+                        field={field}
+                        section={section}
+                        output={output}
+                        instance={instance}
+                        violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
+                        canEdit={canEdit}
+                        onChange={update}
+                      />
+                    ))}
                 </div>
               ))}
               {canEdit && (

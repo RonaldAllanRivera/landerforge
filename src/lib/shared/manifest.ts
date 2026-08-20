@@ -43,6 +43,18 @@ export const TemplateFieldSchema = z
     /** May be absent on a given instance; skipped by every lint when absent. */
     optional: z.boolean().optional(),
 
+    /**
+     * Set false for a field that belongs to a REPEATING section but occurs once.
+     *
+     * The Reasons template's Social Proof panel is one heading above N review cards.
+     * Without this the heading would repeat per review, and the alternative — splitting
+     * the panel into two manifest sections — would put a divider through a panel the
+     * CMS draws as one, which is the thing the review screen exists not to do.
+     *
+     * Meaningless outside a repeating section, where everything occurs once anyway.
+     */
+    repeats: z.boolean().optional(),
+
     /** Fallbacks — used ONLY when the brief has no entry for this field. */
     fallbackWordTarget: z.tuple([z.number().int(), z.number().int()]).optional(),
     fallbackItemCount: z.number().int().positive().optional(),

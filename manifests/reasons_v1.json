@@ -1,0 +1,581 @@
+{
+  "slug": "reasons_v1",
+  "name": "Reasons V1",
+  "sections": [
+    {
+      "id": "hero",
+      "label": "Hero",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "page_title",
+          "label": "Page Title (H1)",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            14,
+            19
+          ],
+          "productNameFormat": "plain",
+          "voice": "expert",
+          "notes": "Numbered-reasons headline. The count in the title must match the number of reasons in the body.",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "hero_image",
+          "label": "Hero Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "intro_text",
+          "label": "Intro Text",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            90,
+            130
+          ],
+          "productNameFormat": "plain",
+          "voice": "second_person",
+          "notes": "Sets up the scarcity frame and promises the numbered reasons.",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "author",
+          "label": "Author",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "show_as_seen_on",
+          "label": "Show As Seen On Bundle",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "as_seen_on_bundle",
+          "label": "As Seen On",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "show_breadcrumbs",
+          "label": "Show Breadcrumbs",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "show_urgency_bar",
+          "label": "Show Urgency Bar",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "urgency_bar_text",
+          "label": "Urgency Bar Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            15,
+            28
+          ],
+          "productNameFormat": "plain",
+          "voice": "expert",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "show_date",
+          "label": "Show Date",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        }
+      ]
+    },
+    {
+      "id": "content",
+      "label": "Content",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            900,
+            1080
+          ],
+          "markdownBold": true,
+          "productNameFormat": "bold",
+          "linkPolicy": "product_name",
+          "voice": "expert",
+          "fallbackSubunits": {
+            "count": [
+              7,
+              7
+            ],
+            "parts": {
+              "heading": [
+                10,
+                16
+              ],
+              "body": [
+                95,
+                130
+              ],
+              "quote": [
+                22,
+                40
+              ]
+            },
+            "join": "\n\n"
+          },
+          "notes": "One numbered reason per subunit: an H2 'N. Claim — qualifier', two or three paragraphs, then a blockquote from a named user. Measured at 7 reasons and 7 quotes on both live pages."
+        }
+      ]
+    },
+    {
+      "id": "social_proof",
+      "label": "Social Proof",
+      "presenceToggleLabel": "Show section",
+      "repeat": [
+        3,
+        6
+      ],
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "social_proof_heading",
+          "label": "Social Proof Heading",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            3,
+            5
+          ],
+          "voice": "brand_we",
+          "notes": "One heading above all the cards, not one per card.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            6
+          ],
+          "voice": "reviewer",
+          "specPolicy": "exempt",
+          "notes": "Generic full name plus a country-level location.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "review_text",
+          "label": "Review Text",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            22,
+            42
+          ],
+          "voice": "reviewer",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "rating",
+          "label": "Rating (1–5)",
+          "type": "number",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "avatar",
+          "label": "Avatar",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "time_ago",
+          "label": "Time Ago",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            6
+          ],
+          "voice": "reviewer",
+          "specPolicy": "exempt",
+          "notes": "A relative timestamp is not a spec.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "label": "Comments",
+      "presenceToggleLabel": "Show section",
+      "repeat": [
+        4,
+        8
+      ],
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            3
+          ],
+          "voice": "reviewer",
+          "specPolicy": "exempt",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "comment_text",
+          "label": "Comment Text",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            18,
+            40
+          ],
+          "voice": "reviewer",
+          "notes": "Shorter and looser than a review: questions and asides are in character.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "time_ago",
+          "label": "Time Ago",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            4
+          ],
+          "voice": "reviewer",
+          "specPolicy": "exempt",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "verified_buyer",
+          "label": "Verified Buyer",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        }
+      ]
+    },
+    {
+      "id": "sidebar",
+      "label": "Sidebar",
+      "presenceToggleLabel": "Show section",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "sidebar_title",
+          "label": "Sidebar Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            5
+          ],
+          "productNameFormat": "plain",
+          "voice": "brand_we",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "sidebar_product_image",
+          "label": "Sidebar Product Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "sidebar_cta_text",
+          "label": "Sidebar CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            4
+          ],
+          "charLimit": 24,
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "features_list",
+          "label": "Features List (markdown)",
+          "type": "scaffolded",
+          "generate": true,
+          "fallbackItemCount": 5,
+          "fallbackWordTarget": [
+            15,
+            30
+          ],
+          "voice": "brand_we",
+          "lineTemplates": {
+            "plain": "- {copy}"
+          },
+          "notes": "Plain markdown bullets on this template — no icon span, unlike Advertorial.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "label": "CTA",
+      "presenceToggleLabel": "Mobile Sticky CTA",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "cta_section_heading",
+          "label": "CTA Section Heading",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            7,
+            11
+          ],
+          "productNameFormat": "plain",
+          "voice": "second_person",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cta_section_intro",
+          "label": "CTA Section Intro",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            34,
+            55
+          ],
+          "productNameFormat": "plain",
+          "voice": "second_person",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cta_product_image",
+          "label": "CTA Product Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "cta_button_text",
+          "label": "CTA Button Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            5
+          ],
+          "charLimit": 44,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "mobile_cta_text",
+          "label": "Mobile CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            5
+          ],
+          "charLimit": 24,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "cta_urgency_text",
+          "label": "CTA Urgency Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            6
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "cta_subtext",
+          "label": "CTA Subtext",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            9,
+            13
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "show_countdown",
+          "label": "Show Countdown to Midnight",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        }
+      ]
+    },
+    {
+      "id": "exit_pop",
+      "label": "Exit Pop",
+      "defaultPresent": false,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "show_on_this_page",
+          "label": "Show on this page",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "exit_pop",
+          "label": "Exit Pop",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        }
+      ]
+    }
+  ],
+  "selectors": {
+    ".adv2-title": "hero.page_title",
+    ".adv2-intro": "hero.intro_text",
+    ".adv2-urgency-bar": "hero.urgency_bar_text",
+    ".adv2-content": "content.body",
+    ".adv2-social-proof .adv2-section-heading": "social_proof.social_proof_heading",
+    ".adv2-social-name": "social_proof.name",
+    ".adv2-social-text": "social_proof.review_text",
+    ".adv2-social-meta": "social_proof.time_ago",
+    ".adv2-comment-name": "comments.name",
+    ".adv2-comment-text": "comments.comment_text",
+    ".adv2-comment-time": "comments.time_ago",
+    ".adv2-sidebar-title": "sidebar.sidebar_title",
+    ".adv2-sidebar-features": "sidebar.features_list",
+    ".adv2-sidebar-cta-btn": "sidebar.sidebar_cta_text",
+    ".adv2-cta-section-heading": "cta.cta_section_heading",
+    ".adv2-cta-section-intro": "cta.cta_section_intro",
+    ".adv2-cta-btn": "cta.cta_button_text",
+    ".adv2-floating-btn": "cta.mobile_cta_text",
+    ".adv2-cta-urgency": "cta.cta_urgency_text",
+    ".adv2-cta-subtext": "cta.cta_subtext"
+  }
+}

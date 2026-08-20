@@ -165,3 +165,62 @@ describe("scaffolded fields round-trip through the textarea", () => {
     expect(renderFieldValue(benefits, null)).toBe("");
   });
 });
+
+/**
+ * A repeating section can hold a field that occurs once — the Reasons template's Social
+ * Proof panel is one heading above N review cards. Treating it as an array would repeat
+ * the heading per card, and add/remove would edit it.
+ */
+describe("a field that does not repeat inside a repeating section", () => {
+  const socialProof = {
+    id: "social_proof",
+    label: "Social Proof",
+    defaultPresent: true,
+    repeat: [3, 6],
+    fields: [
+      field({ key: "social_proof_heading", type: "text", repeats: false }),
+      field({ key: "name", type: "text" }),
+      field({ key: "review_text", type: "textarea" }),
+    ],
+  } as unknown as TemplateSection;
+
+  const stored = {
+    social_proof_heading: "What Customers Are Saying",
+    name: ["Jason", "Amanda", "Derek"],
+    review_text: ["a", "b", "c"],
+  };
+
+  it("reads the same value for every instance", () => {
+    for (const i of [0, 1, 2]) {
+      expect(readField(socialProof, stored, "social_proof_heading", i)).toBe(
+        "What Customers Are Saying",
+      );
+    }
+  });
+
+  it("writes it as a plain value, not an array entry", () => {
+    const next = writeField(socialProof, stored, "social_proof_heading", 1, "Reviews");
+    expect(next.social_proof_heading).toBe("Reviews");
+  });
+
+  it("is ignored when counting instances", () => {
+    // Otherwise a single string would be read as a one-instance section.
+    expect(instanceCount(socialProof, stored)).toBe(3);
+  });
+
+  it("gains nothing when an instance is added", () => {
+    const next = addInstance(socialProof, stored);
+    expect(next.social_proof_heading).toBe("What Customers Are Saying");
+    expect(next.name).toHaveLength(4);
+  });
+
+  it("survives an instance being removed", () => {
+    const next = removeInstance(socialProof, stored, 0);
+    expect(next.social_proof_heading).toBe("What Customers Are Saying");
+    expect(next.name).toEqual(["Amanda", "Derek"]);
+  });
+
+  it("still treats the other fields as repeating", () => {
+    expect(readField(socialProof, stored, "name", 2)).toBe("Derek");
+  });
+});

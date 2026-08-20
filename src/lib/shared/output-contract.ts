@@ -1,4 +1,5 @@
 import type { TemplateField, TemplateSection } from "./manifest";
+import { fieldRepeats } from "./section-io";
 import { resolveWordTarget, type SectionPlanEntry } from "./section-plan";
 
 /**
@@ -29,15 +30,18 @@ export function outputContract(
   if (fields.length === 0) return "";
 
   const instances = section.repeat ? (plan?.instanceCount ?? section.repeat[0]) : null;
-  const shape = fields.map((f) => `  ${JSON.stringify(f.key)}: ${shapeFor(f, instances)}`);
-  const rules = fields.map((f) => `- ${ruleFor(f, plan, instances)}`);
+  // A field that occurs once inside a repeating section is a plain value, not an array.
+  const spread = (f: TemplateField) => (fieldRepeats(section, f) ? instances : null);
+  const shape = fields.map((f) => `  ${JSON.stringify(f.key)}: ${shapeFor(f, spread(f))}`);
+  const rules = fields.map((f) => `- ${ruleFor(f, plan, spread(f))}`);
 
   const preamble =
     instances === null
       ? "Return exactly this JSON object, with no other keys and no text around it:"
       : `This section repeats ${instances} times. Return exactly this JSON object, with ` +
-        `no other keys and no text around it — every field is an array of ${instances}, ` +
-        "one per instance, in display order:";
+        "no other keys and no text around it. Fields shown as an array have one entry " +
+        "per instance, in display order; fields shown as a single value occur once for " +
+        "the whole section:";
 
   return `${preamble}\n{\n${shape.join(",\n")}\n}\n\nField rules:\n${rules.join("\n")}`;
 }

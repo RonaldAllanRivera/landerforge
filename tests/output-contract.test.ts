@@ -130,3 +130,32 @@ describe("general shape", () => {
     expect(outputContract(section({ fields: [field({ generate: false })] }), plan())).toBe("");
   });
 });
+
+describe("a field that occurs once inside a repeating section", () => {
+  const socialProof = {
+    id: "social_proof",
+    label: "Social Proof",
+    defaultPresent: true,
+    repeat: [3, 6],
+    fields: [
+      field({ key: "social_proof_heading", type: "text", repeats: false }),
+      field({ key: "review_text", type: "textarea" }),
+    ],
+  } as unknown as TemplateSection;
+
+  const withPlan = plan({ sectionId: "social_proof", instanceCount: 3 });
+
+  it("asks for a single value, not an array", () => {
+    const out = outputContract(socialProof, withPlan);
+    expect(out).toMatch(/"social_proof_heading":\s*"<text>"/);
+  });
+
+  it("still asks for an array for the fields that do repeat", () => {
+    expect(outputContract(socialProof, withPlan)).toContain("x3");
+  });
+
+  it("explains that both shapes appear in the same object", () => {
+    // Without this the model reasonably assumes "repeats 3 times" applies to every key.
+    expect(outputContract(socialProof, withPlan)).toContain("occur once for");
+  });
+});

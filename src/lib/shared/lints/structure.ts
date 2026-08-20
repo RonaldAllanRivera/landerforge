@@ -41,6 +41,28 @@ export const itemCountLint: Lint = (ctx) => {
   const expected = ctx.plan?.itemCount ?? ctx.field.fallbackItemCount;
   if (expected === undefined) return out;
 
+  /**
+   * A `list` field inside a repeating section is string[][], one array of entries per
+   * instance. Counting the outer array would count the INSTANCES and report "3 items,
+   * expected 4" on a section that has exactly the four entries it was asked for, per
+   * competitor. Each instance is checked on its own instead.
+   */
+  if (Array.isArray(ctx.value) && ctx.value.some((v) => Array.isArray(v))) {
+    ctx.value.forEach((entry, index) => {
+      const count = Array.isArray(entry) ? entry.length : 1;
+      if (count !== expected) {
+        out.push(
+          violation(
+            ctx,
+            "item_count",
+            `entry ${index + 1} has ${count} items, expected ${expected}`,
+          ),
+        );
+      }
+    });
+    return out;
+  }
+
   let actual: number | null = null;
   if (Array.isArray(ctx.value)) actual = ctx.value.length;
   else if (typeof ctx.value === "object") actual = ctx.value.items.length;

@@ -147,6 +147,14 @@ export function removeInstance(
 export function renderFieldValue(field: TemplateField, value: unknown): string {
   if (value === undefined || value === null) return "";
   if (typeof value === "string") return value;
+  /**
+   * A list is edited as one line per entry, which is how it reads and how it pastes.
+   * The CMS draws a separate input per entry, but a textarea of lines is the same
+   * information and far less to operate for copy that arrives all at once.
+   */
+  if (field.type === "list" && Array.isArray(value)) {
+    return value.filter((v) => typeof v === "string").join("\n");
+  }
   if (field.type === "scaffolded" && typeof value === "object" && "items" in value) {
     const items = (value as { items?: unknown }).items;
     if (Array.isArray(items)) {
@@ -193,4 +201,12 @@ export function parseScaffold(
     });
 
   return { items };
+}
+
+/** Split an edited list field back into entries. Blank lines are not entries. */
+export function parseList(text: string): string[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
 }

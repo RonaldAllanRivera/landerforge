@@ -1,0 +1,529 @@
+{
+  "slug": "comparison_v1",
+  "name": "Comparison V1",
+  "sections": [
+    {
+      "id": "page_header",
+      "label": "Page Header",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "public_title",
+          "label": "Public Title (H1)",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            12,
+            16
+          ],
+          "productNameFormat": "none",
+          "notes": "Ranked-roundup headline. Uses {{currentYear}} rather than a literal year.",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "hero_background_image",
+          "label": "Hero Background Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "author",
+          "label": "Author",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "intro_card",
+      "label": "Intro Card",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "intro_body",
+          "label": "Intro Body",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            105,
+            145
+          ],
+          "markdownBold": true,
+          "productNameFormat": "none",
+          "voice": "expert",
+          "notes": "States the test, the criterion, and that #1 fixed the flaw the others share.",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "winner",
+      "label": "Winner (#1)",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "product_image",
+          "label": "Product Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "pros",
+          "label": "Pros",
+          "type": "list",
+          "generate": true,
+          "fallbackItemCount": 9,
+          "fallbackWordTarget": [
+            55,
+            80
+          ],
+          "productNameFormat": "none",
+          "voice": "expert",
+          "notes": "Measured 8-10 entries of 4-10 words on the live pages.",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cons",
+          "label": "Cons",
+          "type": "list",
+          "generate": true,
+          "fallbackItemCount": 2,
+          "fallbackWordTarget": [
+            12,
+            22
+          ],
+          "voice": "expert",
+          "notes": "Damaging admission, framed as a usage note. Two entries on both live pages.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "header_badge",
+          "label": "Header Badge",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            5
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "score",
+          "label": "Score (0–10)",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "score_word",
+          "label": "Score Word",
+          "type": "text",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "review_count",
+          "label": "Review Count",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "show_social_proof",
+          "label": "Show Social Proof",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "social_proof_count",
+          "label": "Social Proof Count",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "cta_text_override",
+          "label": "CTA Text Override",
+          "type": "text",
+          "generate": true,
+          "optional": true,
+          "fallbackWordTarget": [
+            2,
+            5
+          ],
+          "charLimit": 44,
+          "notes": "Blank falls back to the page-level CTA text.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "competitors",
+      "label": "Competitors",
+      "repeat": [
+        3,
+        5
+      ],
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "image",
+          "label": "Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "score",
+          "label": "Score (0–10)",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "score_word",
+          "label": "Score Word",
+          "type": "text",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "review_count",
+          "label": "Review Count",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "pros",
+          "label": "Pros",
+          "type": "list",
+          "generate": true,
+          "fallbackItemCount": 4,
+          "fallbackWordTarget": [
+            96,
+            160
+          ],
+          "voice": "expert",
+          "notes": "3-5 entries of 6-8 words per competitor; the target is the total across four of them.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cons",
+          "label": "Cons",
+          "type": "list",
+          "generate": true,
+          "fallbackItemCount": 4,
+          "fallbackWordTarget": [
+            96,
+            180
+          ],
+          "voice": "expert",
+          "notes": "The cons carry the comparison's weight. Total across four competitors.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cta_url",
+          "label": "CTA URL",
+          "type": "text",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "advertorial",
+      "label": "Advertorial Body",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "article_body",
+          "label": "Article Body",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            1450,
+            1700
+          ],
+          "markdownBold": true,
+          "productNameFormat": "bold",
+          "linkPolicy": "product_name",
+          "voice": "second_person",
+          "fallbackSubunits": {
+            "count": [
+              5,
+              7
+            ],
+            "parts": {
+              "heading": [
+                6,
+                12
+              ],
+              "body": [
+                180,
+                260
+              ]
+            },
+            "join": "\n\n"
+          },
+          "notes": "H3 sections, ordered lists for numbered items, blockquotes for testimonials. Measured 1,580 and 1,582 words on the two live pages."
+        }
+      ]
+    },
+    {
+      "id": "final_cta",
+      "label": "Final CTA Box",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "heading",
+          "label": "Heading",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            8,
+            13
+          ],
+          "productNameFormat": "none",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "subtitle",
+          "label": "Subtitle",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            55,
+            95
+          ],
+          "markdownBold": true,
+          "productNameFormat": "plain",
+          "voice": "second_person",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cta_text",
+          "label": "CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "charLimit": 44,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "scorecard_bars",
+      "label": "Scorecard Bars",
+      "repeat": [
+        3,
+        6
+      ],
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "label",
+          "label": "Label",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            8,
+            20
+          ],
+          "notes": "2-4 words per bar, five bars measured; the target is their total.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "value",
+          "label": "Value (0–10)",
+          "type": "number",
+          "generate": false,
+          "notes": "Operator-supplied. The model must not invent a competitor's identity, score or link.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "labels_settings",
+      "label": "Labels & Settings",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "show_approved_box",
+          "label": "Show Approved Box",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "text_labels",
+          "label": "Text Labels",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "display_settings",
+          "label": "Display Settings",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    },
+    {
+      "id": "exit_pop",
+      "label": "Exit Pop",
+      "defaultPresent": false,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "show_on_this_page",
+          "label": "Show on this page",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        },
+        {
+          "key": "exit_pop",
+          "label": "Exit Pop",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "expert"
+        }
+      ]
+    }
+  ],
+  "selectors": {
+    ".hero h1": "page_header.public_title",
+    ".intro": "intro_card.intro_body",
+    ".winner .w-col-pros li": "winner.pros",
+    ".winner .w-col-cons li": "winner.cons",
+    ".adv-body": "advertorial.article_body",
+    ".final-cta-subtitle": "final_cta.subtitle"
+  }
+}

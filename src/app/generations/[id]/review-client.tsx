@@ -12,6 +12,7 @@ import {
   generatedFields,
   instanceCount,
   isRepeating,
+  parseList,
   parseScaffold,
   readField,
   removeInstance,
@@ -512,8 +513,14 @@ function FieldRow({
    */
   const multiline = field.type !== "text";
 
-  const emit = (next: string) =>
-    onChange(field.key, instance, field.type === "scaffolded" ? parseScaffold(field, next) : next);
+  const emit = (next: string) => {
+    // Each control writes back the shape the field is stored in, not the shape it is
+    // edited in: a list is lines on screen and an array in the row.
+    if (field.type === "scaffolded")
+      return onChange(field.key, instance, parseScaffold(field, next));
+    if (field.type === "list") return onChange(field.key, instance, parseList(next));
+    return onChange(field.key, instance, next);
+  };
 
   return (
     <div className="field">

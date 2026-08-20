@@ -208,12 +208,12 @@
           "type": "text",
           "generate": true,
           "fallbackWordTarget": [
-            4,
-            6
+            16,
+            26
           ],
           "voice": "reviewer",
           "specPolicy": "exempt",
-          "notes": "Generic full name plus a country-level location.",
+          "notes": "4-6 words per card; total across the cards. Generic full name plus a country-level location.",
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none"
@@ -224,13 +224,14 @@
           "type": "textarea",
           "generate": true,
           "fallbackWordTarget": [
-            22,
-            42
+            88,
+            170
           ],
           "voice": "reviewer",
           "markdownBold": false,
           "productNameFormat": "none",
-          "linkPolicy": "none"
+          "linkPolicy": "none",
+          "notes": "22-42 words per card, four cards measured; the target is their total."
         },
         {
           "key": "rating",
@@ -259,12 +260,12 @@
           "type": "text",
           "generate": true,
           "fallbackWordTarget": [
-            4,
-            6
+            16,
+            26
           ],
           "voice": "reviewer",
           "specPolicy": "exempt",
-          "notes": "A relative timestamp is not a spec.",
+          "notes": "A relative timestamp is not a spec. Total across the cards.",
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none"
@@ -288,14 +289,15 @@
           "type": "text",
           "generate": true,
           "fallbackWordTarget": [
-            2,
-            3
+            10,
+            18
           ],
           "voice": "reviewer",
           "specPolicy": "exempt",
           "markdownBold": false,
           "productNameFormat": "none",
-          "linkPolicy": "none"
+          "linkPolicy": "none",
+          "notes": "Total across the comments."
         },
         {
           "key": "comment_text",
@@ -303,11 +305,11 @@
           "type": "textarea",
           "generate": true,
           "fallbackWordTarget": [
-            18,
-            40
+            110,
+            240
           ],
           "voice": "reviewer",
-          "notes": "Shorter and looser than a review: questions and asides are in character.",
+          "notes": "18-40 words per comment, six or seven measured; the target is their total.",
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none"
@@ -318,14 +320,15 @@
           "type": "text",
           "generate": true,
           "fallbackWordTarget": [
-            2,
-            4
+            10,
+            20
           ],
           "voice": "reviewer",
           "specPolicy": "exempt",
           "markdownBold": false,
           "productNameFormat": "none",
-          "linkPolicy": "none"
+          "linkPolicy": "none",
+          "notes": "Total across the comments."
         },
         {
           "key": "verified_buyer",

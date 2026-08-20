@@ -16,6 +16,13 @@ export const FIELD_TYPES = [
   "markdown",
   /** Repeated lines wrapping copy in fixed markup — the model never writes the markup. */
   "scaffolded",
+  /**
+   * A list of single-line strings, each its own input in the CMS with its own delete
+   * button — the Comparison template's Pros and Cons. Distinct from `scaffolded`, which
+   * also repeats lines but wraps each in markup, and from `markdown`, where the bullets
+   * are characters inside one blob rather than separate values.
+   */
+  "list",
   "number",
   /** NOT generated: a position marker so the review screen mirrors the CMS. */
   "display",
@@ -55,7 +62,15 @@ export const TemplateFieldSchema = z
      */
     repeats: z.boolean().optional(),
 
-    /** Fallbacks — used ONLY when the brief has no entry for this field. */
+    /**
+     * Fallbacks — used ONLY when the brief has no entry for this field.
+     *
+     * In a REPEATING section `fallbackWordTarget` is the TOTAL across every instance,
+     * not the figure for one, because that is what the validator compares against and
+     * what the brief's computed targets mean. `fallbackItemCount` is the opposite: it
+     * is per instance, since it counts entries inside one card. Easy to get backwards —
+     * the first draft of the Comparison manifest did — so both are stated here.
+     */
     fallbackWordTarget: z.tuple([z.number().int(), z.number().int()]).optional(),
     fallbackItemCount: z.number().int().positive().optional(),
     charLimit: z.number().int().positive().optional(),

@@ -36,7 +36,8 @@ export interface ScaffoldValue {
   items: Array<{ variant: string; copy: string }>;
 }
 
-export type FieldValue = string | ScaffoldValue | string[];
+/** string[][] is a `list` field inside a repeating section: entries per instance. */
+export type FieldValue = string | ScaffoldValue | string[] | string[][];
 
 export interface LintContext {
   manifest: TemplateManifest;
@@ -72,9 +73,18 @@ export function violation(
     : { category, address: ctx.address, message, excerpt };
 }
 
-/** The literal text a lint reads. Scaffolded fields expose only their copy slots. */
+/**
+ * The literal text a lint reads. Scaffolded fields expose only their copy slots.
+ *
+ * Flattens one level, because a `list` field inside a REPEATING section arrives as
+ * string[][] — one array of entries per instance. Left nested, Array#join stringifies
+ * the inner arrays with commas and the word count silently counts the separators as
+ * part of a word.
+ */
 export function plainText(value: FieldValue): string {
   if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.join("\n");
+  if (Array.isArray(value)) {
+    return value.map((entry) => (Array.isArray(entry) ? entry.join("\n") : entry)).join("\n");
+  }
   return value.items.map((i) => i.copy).join("\n");
 }

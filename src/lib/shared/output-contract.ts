@@ -54,6 +54,12 @@ function shapeFor(field: TemplateField, instances: number | null): string {
     const one = `{ "items": [ { "variant": ${variants || '"…"'}, "copy": "<one line>" } ] }`;
     return instances === null ? one : `[ ${one}, … ]`;
   }
+  if (field.type === "list") {
+    // Already an array in its own right. No CMS field here nests one inside a
+    // repeating section, so the instance spread does not apply to it.
+    const one = '[ "<one line>", … ]';
+    return instances === null ? one : `[ ${one} x${instances} ]`;
+  }
   const one = `"<${field.type}>"`;
   // The count goes inside the array rather than in a trailing comment: a comment
   // followed by the object's comma made the illustration look like invalid JSON.
@@ -78,10 +84,11 @@ function ruleFor(
      */
     const spread = instances && instances > 1 ? instances : 1;
     const single = min === max ? `exactly ${min} words` : `${min}–${max} words`;
+    const per = Math.round((min + max) / 2 / spread);
     parts.push(
       spread > 1
         ? `${min}–${max} words in TOTAL across all ${spread} entries ` +
-            `(about ${Math.round((min + max) / 2 / spread)} words each)`
+            `(about ${per} ${per === 1 ? "word" : "words"} each)`
         : single,
     );
   }
@@ -103,6 +110,9 @@ function ruleFor(
       "write ONLY the copy text — the surrounding markup is added by code, so any " +
         "HTML tag in your output is a defect",
     );
+  }
+  if (field.type === "list") {
+    parts.push("a JSON array of short single-line strings, with no bullet characters");
   }
   if (field.charLimit) parts.push(`at most ${field.charLimit} characters`);
 

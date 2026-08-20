@@ -94,7 +94,23 @@ function checkShape(ctx: LintContext): Violation | null {
     );
   }
 
-  // Everything else is prose: a string, or a list of them.
+  /**
+   * A `list` field is an array of lines, and inside a repeating section it is an array
+   * of those — one per instance. The gate predates the list type and rejected the
+   * nested form as malformed, which would have refused every competitor's Pros before
+   * a single lint ran.
+   */
+  if (ctx.field.type === "list") {
+    if (Array.isArray(ctx.value) && ctx.value.every(isLineOrLines)) return null;
+    return violation(
+      ctx,
+      "scaffold",
+      "list fields must emit an array of single-line strings",
+      preview(ctx.value),
+    );
+  }
+
+  // Everything else is prose: a string, or one per instance of a repeating section.
   const isProse =
     typeof ctx.value === "string" ||
     (Array.isArray(ctx.value) && ctx.value.every((v) => typeof v === "string"));
@@ -105,6 +121,13 @@ function checkShape(ctx: LintContext): Violation | null {
     "scaffold",
     `${ctx.field.type} fields must emit a string, not ${describe(ctx.value)}`,
     preview(ctx.value),
+  );
+}
+
+/** One entry, or one instance's worth of entries. */
+function isLineOrLines(value: unknown): boolean {
+  return (
+    typeof value === "string" || (Array.isArray(value) && value.every((v) => typeof v === "string"))
   );
 }
 

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { startGeneration } from "./actions";
 
@@ -7,6 +8,8 @@ export default async function NewGeneration() {
     supabase.from("projects").select("id, name").order("name"),
     supabase.from("templates").select("id, name, slug").order("name"),
   ]);
+
+  const hasProjects = (projects ?? []).length > 0;
 
   return (
     <main>
@@ -27,13 +30,26 @@ export default async function NewGeneration() {
         </select>
 
         <label htmlFor="projectId">Project</label>
-        <select id="projectId" name="projectId" required>
+        <select id="projectId" name="projectId" required disabled={!hasProjects}>
           {(projects ?? []).map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
             </option>
           ))}
         </select>
+        <p className="muted">
+          {hasProjects ? (
+            <>
+              Versions are kept per project. <Link href="/projects">Manage projects</Link> to add
+              another.
+            </>
+          ) : (
+            <>
+              You have no projects yet — <Link href="/projects">create one first</Link>. A
+              generation has to belong to somewhere its versions can live.
+            </>
+          )}
+        </p>
 
         <label htmlFor="sourceUrl">Source URL (optional)</label>
         <input id="sourceUrl" name="sourceUrl" type="url" placeholder="https://…" />
@@ -54,7 +70,9 @@ export default async function NewGeneration() {
         <textarea id="specialNotes" name="specialNotes" placeholder="Angle, claims, constraints…" />
 
         <p />
-        <button type="submit">Generate</button>
+        <button type="submit" disabled={!hasProjects}>
+          Generate
+        </button>
       </form>
     </main>
   );

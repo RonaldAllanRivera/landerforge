@@ -55,15 +55,23 @@ export interface BriefPayload {
 export const generate = inngest.createFunction(
   {
     id: "generate-lander",
-    // Inngest delivers at-least-once and the wizard is double-submittable. The window
-    // is 24 HOURS, which is exactly why retry is a separate event.
-    idempotency: "event.data.generationId",
+    /**
+     * Inngest delivers at-least-once and the wizard is double-submittable, so a run is
+     * keyed and deduplicated. The window is 24 HOURS, which is why the key includes the
+     * attempt number: without it a deliberate retry inside that window is silently
+     * swallowed and the button does nothing. Both triggers always carry `attempt`.
+     */
+    idempotency: 'event.data.generationId + "-" + string(event.data.attempt)',
     concurrency: SHARED_CONCURRENCY,
     onFailure: async ({ error }) => {
       console.error("[generate] run failed after retries", error);
     },
   },
-  { event: "generation.requested" },
+  /**
+   * One function, two triggers. A separate retry function would be a second copy of
+   * the pipeline, and the copy is what would rot.
+   */
+  [{ event: "generation.requested" }, { event: "generation.retry.requested" }],
   async ({ event, step }) => {
     const db = createAdminClient();
     const generationId = event.data.generationId as number;

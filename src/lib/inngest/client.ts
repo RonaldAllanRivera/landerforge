@@ -3,7 +3,12 @@ import { Inngest } from "inngest";
 export const inngest = new Inngest({ id: "landerforge" });
 
 export type Events = {
-  "generation.requested": { data: { generationId: number } };
+  /**
+   * `attempt` is on BOTH events and always sent, because it is part of the function's
+   * idempotency key. A retry with no attempt number would be deduplicated against the
+   * original for 24 hours and the button would look dead.
+   */
+  "generation.requested": { data: { generationId: number; attempt: number } };
   "generation.retry.requested": { data: { generationId: number; attempt: number } };
   "generation.section.requested": {
     data: { generationId: number; sectionId: string; feedback?: string };

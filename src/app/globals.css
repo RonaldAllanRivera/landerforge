@@ -259,3 +259,48 @@ code {
   font-size: 0.86rem;
   line-height: 1.5;
 }
+
+/* ── List screens ───────────────────────────────────────────────────────────
+   Primary actions sit beside the heading, not after the list: a create button
+   below a few hundred rows is a button nobody can reach. */
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.page-head h1 {
+  margin-bottom: 0.2rem;
+}
+.page-head .sub {
+  margin-bottom: 1rem;
+}
+
+.search {
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.search input {
+  flex: 1;
+}
+.search button {
+  flex: none;
+}
+
+.pager {
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1.25rem;
+}
+
+/* A link that reads as a secondary button without being one. */
+.ghost-link {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.ghost-link:hover {
+  color: var(--accent);
+}

@@ -4,12 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function ProjectHistory({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // /projects/new resolves to the static route, but anything else non-numeric would
+  // reach Postgres as NaN and error rather than 404.
+  const projectId = Number(id);
+  if (!Number.isInteger(projectId)) notFound();
   const supabase = await createClient();
 
   const { data: project } = await supabase
     .from("projects")
     .select("id, name, product_name")
-    .eq("id", Number(id))
+    .eq("id", projectId)
     .maybeSingle();
   if (!project) notFound();
 

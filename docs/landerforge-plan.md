@@ -1041,6 +1041,11 @@ It shows:
 
 ## Frontend (7 screens)
 
+Navigation is part of the design, not a leftover. An early version had the project
+history screen implemented and unreachable — nothing linked to it — so the only way back
+to an existing generation was to remember its id. Every screen that holds work now has a
+route to it from the nav or from a list.
+
 ### The auth surface — sign in (`/login`) and admin (`/admin`)
 
 `/login` is one "Continue with Google" button calling `signInWithOAuth({ provider: 'google', options: { redirectTo } })`. No other method is offered because no other method is enabled. Rejected sign-ins — anyone not on the allowlist — land on `/auth/auth-code-error` with a plain "this account isn't authorized" message and no retry affordance; the copy should not imply that trying again will help.
@@ -1050,6 +1055,23 @@ Middleware refreshes the session and redirects unauthenticated requests to `/log
 `/admin` is `admin`-only and does the user management the allowlist implies: list allowed emails with the role each will get, add an address, change someone's role, and a single **Remove access** action that performs all three off-boarding writes together — allowlist row, `user_roles` row, and the `auth.users` row or session kill. Splitting those into separate buttons is how a removed user keeps working access, so they are deliberately one action.
 
 Route protection is defense in depth, not the control: middleware redirects, server actions re-check with `getClaims()`, and RLS denies independently. The role read in React only hides affordances — the JWT is decoded client-side and fully under the user's control, so no mutation may trust it.
+
+### 0. Projects (`/projects`, `/projects/new`)
+
+The index is the way in. It lists every project with its generation count, spend and
+last run, searched and paged **in the database** — this list is expected to reach the
+hundreds, and the version that fetched everything and counted in JavaScript would have
+degraded silently.
+
+Creating one is its own page, reached from a button beside the heading, because a create
+form below a long list is a control nobody can reach. A rejected submission returns the
+reason and the values that were typed.
+
+Names are unique, indexed on `lower(btrim(name))` — "Breezebox" and "breezebox " are one
+project to everybody except a byte comparison. The application normalises to match, but
+the database constraint is the check, since looking first and inserting second still
+races. On a collision the message names the project that already exists rather than the
+string that was typed; those differ by exactly the case or spacing that caused it.
 
 ### 1. New generation wizard (`/new`)
 

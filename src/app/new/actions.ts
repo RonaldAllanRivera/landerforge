@@ -27,6 +27,6 @@ export async function startGeneration(formData: FormData) {
   const { generationId } = await createGeneration(createAdminClient(), actor, input);
 
   // The row must exist before the event fires — the event carries only the id.
-  await inngest.send({ name: "generation.requested", data: { generationId } });
+  await inngest.send({ name: "generation.requested", data: { generationId, attempt: 0 } });
   redirect(`/generations/${generationId}`);
 }

@@ -49,12 +49,29 @@ async function main() {
   const extracted = extractBlocks(await response.text(), manifest);
   if (extracted.blocks.length === 0) throw new Error("extracted no blocks — wrong URL?");
 
-  const { data: project, error: projectError } = await db
+  /**
+   * Reuse the project rather than minting a timestamped one per run. Names are unique
+   * now, and more usefully, repeated runs against the same project accumulate as
+   * versions — which is the thing the project history screen exists to show.
+   */
+  const projectName = process.env.DEV_PROJECT ?? "NoBarkUltra (local)";
+  const { data: existing } = await db
     .from("projects")
-    .insert({ owner_id: owner.id, name: `Local run — ${new Date().toISOString()}`, product_name: "NoBarkUltra", niche: "pet" })
     .select("id")
-    .single();
-  if (projectError) throw new Error(projectError.message);
+    .ilike("name", projectName)
+    .maybeSingle();
+
+  let projectId = existing?.id as number | undefined;
+  if (projectId === undefined) {
+    const { data: created, error: projectError } = await db
+      .from("projects")
+      .insert({ owner_id: owner.id, name: projectName, product_name: "NoBarkUltra", niche: "pet" })
+      .select("id")
+      .single();
+    if (projectError) throw new Error(projectError.message);
+    projectId = created.id as number;
+  }
+  const project = { id: projectId };
 
   const { data: source, error: sourceError } = await db
     .from("sources")
@@ -93,7 +110,7 @@ async function main() {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       name: "generation.requested",
-      data: { generationId: generation.id },
+      data: { generationId: generation.id, attempt: 0 },
     }),
   });
   if (!sent.ok) {

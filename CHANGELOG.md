@@ -9,6 +9,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Projects are findable.** There was no index: `/projects/[id]` held a project's whole
+  version history and nothing anywhere linked to it, so the only route to an existing
+  generation was remembering its id. `/projects` now lists every project with its
+  generation count, spend and last run, with **search and paging done in the database**
+  rather than by fetching everything and filtering in the page — a list that still
+  renders while quietly getting slower is the kind of thing nobody notices until it is
+  the slowest screen. The home page is a work list of recent generations instead of a
+  greeting and one button, and the nav has a Projects link.
+- **Creating a project, on its own page.** `/projects/new`, reached from a button beside
+  the heading. It was briefly a form underneath the list, which is unreachable the
+  moment the list is long. A rejected submission comes back with the reason **and with
+  what was typed** — losing someone's input because a name collided is a worse failure
+  than the collision.
+- **Project names are unique** (migration `0010`), indexed on `lower(btrim(name))` so
+  "Breezebox" and "breezebox " are the same name. The application normalises to match,
+  but the constraint is the check: looking for an existing name and then inserting still
+  races. On a collision the error names **the project that already exists**, not the
+  string that was typed — those differ by exactly the case or spacing that caused it.
+
 - **The review screen is now the CMS form.** It listed every field as a read-only line
   with a "not generated" badge beside the eight display markers in Hero alone, and
   rendered a repeating section's parallel arrays as raw JSON. It now mirrors
@@ -127,6 +146,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modes worth knowing about.
 
 ### Fixed
+
+- **The Retry button pointed at a route that was never written.** It POSTed to
+  `/api/v1/generations/[id]/retry` — a 404 — and `generation.retry.requested` had no
+  handler at all, so the only visible recovery path in the app did nothing. It is now a
+  server action, and the generate function takes both events rather than growing a
+  second copy of the pipeline. `attempt` moved into the idempotency key and is sent on
+  both: without it a deliberate retry inside the 24-hour dedupe window is swallowed,
+  which is what would have made the button look broken even once it existed.
+- **A run whose event is lost sat at `queued` forever with no way out.** That is not
+  `failed`, so the button was not even offered. Recovery is now available for anything
+  unfinished, and the copy says what happened. Found the hard way, then fixed and
+  verified against a genuinely stuck run.
 
 - **Both auth hooks were disabled on the local stack.** Migration `0002` installs them
   and its own comments describe exactly what goes wrong without them, but

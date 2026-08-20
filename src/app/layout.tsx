@@ -18,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/">LanderForge</Link>
             <span className="nav-links">
               <Link href="/new">New</Link>
+              <Link href="/projects">Projects</Link>
               <Link href="/costs">Costs</Link>
               {actor.role === "admin" && <Link href="/admin">Access</Link>}
               <span className="badge">{actor.role ?? "no role"}</span>

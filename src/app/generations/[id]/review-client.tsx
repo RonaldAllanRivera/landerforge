@@ -19,7 +19,7 @@ import {
   writeField,
 } from "@/lib/shared/section-io";
 import { createClient } from "@/lib/supabase/client";
-import { saveSectionAction } from "./actions";
+import { retryGenerationAction, saveSectionAction } from "./actions";
 
 interface SectionRow {
   section_id: string;
@@ -110,18 +110,12 @@ export function ReviewScreen(props: Props) {
         {!props.canEdit && <> · read-only (viewers cannot change copy)</>}
       </p>
 
-      {status === "failed" && (
-        <div className="card">
-          <strong>This run failed.</strong>
-          <p className="muted">{props.errorMessage ?? "No error recorded."}</p>
-          {/* Retry is a distinct event with its own idempotency key: re-firing the
-              original would be deduplicated for 24 hours and the button would look dead. */}
-          <form action={`/api/v1/generations/${props.generationId}/retry`} method="post">
-            <button type="submit" className="ghost">
-              Retry run
-            </button>
-          </form>
-        </div>
+      {status !== "done" && props.canEdit && (
+        <RetryCard
+          generationId={props.generationId}
+          status={status}
+          errorMessage={props.errorMessage}
+        />
       )}
 
       {props.runNotes.length > 0 && (
@@ -157,6 +151,62 @@ export function ReviewScreen(props: Props) {
 /** "Reviews" -> "Review", for a single entry's header and the add button. */
 function singular(label: string): string {
   return label.replace(/ies$/, "y").replace(/s$/, "");
+}
+
+/**
+ * Offered for anything that is not finished, not only for `failed`.
+ *
+ * A run whose event is lost sits at `queued` forever. That is not a failure state, so
+ * the old condition showed nothing at all and the only recovery was to start again.
+ */
+function RetryCard({
+  generationId,
+  status,
+  errorMessage,
+}: {
+  generationId: number;
+  status: string;
+  errorMessage: string | null;
+}) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const stalled = status === "queued";
+  return (
+    <div className="card">
+      <strong>
+        {status === "failed"
+          ? "This run failed."
+          : stalled
+            ? "This run never started."
+            : `This run is ${status}.`}
+      </strong>
+      <p className="muted">
+        {error ? (
+          <span className="violation">{error}</span>
+        ) : status === "failed" ? (
+          (errorMessage ?? "No error recorded.")
+        ) : stalled ? (
+          "It was queued but no worker picked it up — usually the Inngest dev server was not running when it was submitted."
+        ) : (
+          "Still working. Re-running will abandon what is in flight and start the sections again."
+        )}
+      </p>
+      <button
+        type="button"
+        className="ghost"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            const result = await retryGenerationAction(generationId);
+            if (!result.ok) setError(result.message ?? "Could not re-run.");
+          })
+        }
+      >
+        {pending ? "Re-running…" : "Re-run"}
+      </button>
+    </div>
+  );
 }
 
 function SectionPanel({

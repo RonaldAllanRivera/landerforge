@@ -18,15 +18,99 @@
       "label": "Hero",
       "defaultPresent": true,
       "fields": [
-        { "key": "show_header_alert", "label": "Show Header Alert", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "page_title", "label": "Page Title (H1)", "type": "text", "generate": true, "fallbackWordTarget": [13, 18], "markdownBold": false, "productNameFormat": "plain", "linkPolicy": "none", "voice": "second_person", "notes": "Benefit with stakes. Elimination-framing beats effort-framing. Length comes from the source, not a fixed cap." },
-        { "key": "hero_image", "label": "Hero Image", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "summary", "label": "Summary", "type": "textarea", "generate": true, "fallbackWordTarget": [38, 41], "markdownBold": false, "productNameFormat": "plain", "linkPolicy": "none", "voice": "second_person", "notes": "First-person hook. One protagonist." },
-        { "key": "author", "label": "Author", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we", "notes": "Select. The bio ships on the page but lives on the Authors resource, so it is never generated." },
-        { "key": "show_advertorial_topbar", "label": "Show \"Advertorial\" Topbar", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "show_brand_logo", "label": "Show Brand Logo", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "show_date_in_byline", "label": "Show Date in Byline", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" }
-      ]
+        {
+          "key": "show_header_alert",
+          "label": "Show Header Alert",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "page_title",
+          "label": "Page Title (H1)",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            13,
+            18
+          ],
+          "markdownBold": false,
+          "productNameFormat": "plain",
+          "linkPolicy": "none",
+          "voice": "second_person",
+          "notes": "Benefit with stakes. Elimination-framing beats effort-framing. Length comes from the source, not a fixed cap."
+        },
+        {
+          "key": "hero_image",
+          "label": "Hero Image",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "summary",
+          "label": "Summary",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            38,
+            41
+          ],
+          "markdownBold": false,
+          "productNameFormat": "plain",
+          "linkPolicy": "none",
+          "voice": "second_person",
+          "notes": "First-person hook. One protagonist."
+        },
+        {
+          "key": "author",
+          "label": "Author",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we",
+          "notes": "Select. The bio ships on the page but lives on the Authors resource, so it is never generated."
+        },
+        {
+          "key": "show_advertorial_topbar",
+          "label": "Show \"Advertorial\" Topbar",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "show_brand_logo",
+          "label": "Show Brand Logo",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "show_date_in_byline",
+          "label": "Show Date in Byline",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ],
+      "tier": "standard"
     },
     {
       "id": "content",
@@ -38,20 +122,54 @@
           "label": "Body",
           "type": "markdown",
           "generate": true,
-          "fallbackWordTarget": [868, 1328],
+          "fallbackWordTarget": [
+            868,
+            1328
+          ],
           "markdownBold": false,
           "productNameFormat": "plain",
           "linkPolicy": "free_anchor",
           "voice": "second_person",
           "fallbackSubunits": {
-            "count": [6, 9],
-            "parts": { "heading": [6, 12], "body": [40, 90], "quote": [24, 54] },
+            "count": [
+              6,
+              9
+            ],
+            "parts": {
+              "heading": [
+                6,
+                12
+              ],
+              "body": [
+                40,
+                90
+              ],
+              "quote": [
+                24,
+                54
+              ]
+            },
             "join": "\n\n"
           },
-          "notes": "One WYSIWYG blob, not a repeating section — the CMS accepts a single paste. Rendered bold, so the copy button strips ** and the operator re-applies with the toolbar. Skim test: bold text alone must carry the argument."
+          "notes": "One WYSIWYG blob, not a repeating section \u2014 the CMS accepts a single paste. Rendered bold, so the copy button strips ** and the operator re-applies with the toolbar. Skim test: bold text alone must carry the argument."
         },
-        { "key": "outro", "label": "Outro (markdown)", "type": "markdown", "generate": true, "fallbackWordTarget": [51, 55], "markdownBold": true, "productNameFormat": "bold", "linkPolicy": "free_anchor", "voice": "second_person", "notes": "Markdown field: the CMS parses the markers, so the copy button keeps them." }
-      ]
+        {
+          "key": "outro",
+          "label": "Outro (markdown)",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            51,
+            55
+          ],
+          "markdownBold": true,
+          "productNameFormat": "bold",
+          "linkPolicy": "free_anchor",
+          "voice": "second_person",
+          "notes": "Markdown field: the CMS parses the markers, so the copy button keeps them."
+        }
+      ],
+      "tier": "standard"
     },
     {
       "id": "sidebar",
@@ -59,14 +177,30 @@
       "presenceToggleLabel": "Show section",
       "defaultPresent": true,
       "fields": [
-        { "key": "sidebar_title", "label": "Sidebar Title", "type": "text", "generate": true, "fallbackWordTarget": [7, 11], "markdownBold": false, "productNameFormat": "plain", "linkPolicy": "none", "voice": "brand_we" },
+        {
+          "key": "sidebar_title",
+          "label": "Sidebar Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            7,
+            11
+          ],
+          "markdownBold": false,
+          "productNameFormat": "plain",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
         {
           "key": "benefits_list",
           "label": "Benefits List (markdown)",
           "type": "scaffolded",
           "generate": true,
           "fallbackItemCount": 4,
-          "fallbackWordTarget": [14, 20],
+          "fallbackWordTarget": [
+            14,
+            20
+          ],
           "markdownBold": false,
           "productNameFormat": "none",
           "linkPolicy": "none",
@@ -75,24 +209,98 @@
             "positive": "- <span class=\"fa-li positive\"><i class=\"fa-solid fa-circle-check\"></i></span> {copy}",
             "negative": "- <span class=\"fa-li negative\"><i class=\"fa-solid fa-circle-check\"></i></span> {copy}"
           },
-          "notes": "Markup taken from the stored CMS value. The negative variant keeps fa-circle-check — fa-circle-xmark appears nowhere in production."
+          "notes": "Markup taken from the stored CMS value. The negative variant keeps fa-circle-check \u2014 fa-circle-xmark appears nowhere in production."
         },
-        { "key": "sidebar_cta_text", "label": "Sidebar CTA Text", "type": "text", "generate": true, "fallbackWordTarget": [2, 3], "charLimit": 24, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "second_person" },
-        { "key": "sidebar_product_image", "label": "Sidebar Product Image", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "show_author_card", "label": "Show Author Card in Sidebar", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" }
-      ]
+        {
+          "key": "sidebar_cta_text",
+          "label": "Sidebar CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            3
+          ],
+          "charLimit": 24,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "sidebar_product_image",
+          "label": "Sidebar Product Image",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "show_author_card",
+          "label": "Show Author Card in Sidebar",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ],
+      "tier": "fast"
     },
     {
       "id": "reviews",
       "label": "Reviews",
       "presenceToggleLabel": "Show section",
-      "repeat": [3, 8],
+      "repeat": [
+        3,
+        8
+      ],
       "defaultPresent": true,
       "fields": [
-        { "key": "reviewer_name", "label": "Reviewer Name", "type": "text", "generate": true, "fallbackWordTarget": [2, 2], "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "reviewer", "notes": "Generic full names. Country-level locations only, never US states." },
-        { "key": "review_text", "label": "Review Text", "type": "textarea", "generate": true, "fallbackWordTarget": [19, 87], "markdownBold": false, "productNameFormat": "plain", "linkPolicy": "none", "voice": "reviewer", "notes": "One or two in desperation/last-resort framing. Content tokens are permitted here — the live pages put {{discountValue}} inside user comments." },
-        { "key": "reviewer_photo", "label": "Reviewer Photo", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" }
-      ]
+        {
+          "key": "reviewer_name",
+          "label": "Reviewer Name",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            2
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "reviewer",
+          "notes": "Generic full names. Country-level locations only, never US states."
+        },
+        {
+          "key": "review_text",
+          "label": "Review Text",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            19,
+            87
+          ],
+          "markdownBold": false,
+          "productNameFormat": "plain",
+          "linkPolicy": "none",
+          "voice": "reviewer",
+          "notes": "One or two in desperation/last-resort framing. Content tokens are permitted here \u2014 the live pages put {{discountValue}} inside user comments."
+        },
+        {
+          "key": "reviewer_photo",
+          "label": "Reviewer Photo",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ],
+      "tier": "standard"
     },
     {
       "id": "cta",
@@ -100,18 +308,67 @@
       "presenceToggleLabel": "Mobile Sticky CTA",
       "defaultPresent": true,
       "fields": [
-        { "key": "cta_button_text", "label": "CTA Button Text", "type": "text", "generate": true, "fallbackWordTarget": [5, 6], "charLimit": 44, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "second_person" },
-        { "key": "mobile_cta_text", "label": "Mobile CTA Text", "type": "text", "generate": true, "fallbackWordTarget": [2, 3], "charLimit": 24, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "second_person" }
-      ]
+        {
+          "key": "cta_button_text",
+          "label": "CTA Button Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            5,
+            6
+          ],
+          "charLimit": 44,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        },
+        {
+          "key": "mobile_cta_text",
+          "label": "Mobile CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            3
+          ],
+          "charLimit": 24,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "second_person"
+        }
+      ],
+      "tier": "fast"
     },
     {
       "id": "exit_pop",
       "label": "Exit Pop",
       "defaultPresent": false,
       "fields": [
-        { "key": "show_on_this_page", "label": "Show on this page", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" },
-        { "key": "exit_pop", "label": "Exit Pop", "type": "display", "generate": false, "markdownBold": false, "productNameFormat": "none", "linkPolicy": "none", "voice": "brand_we" }
-      ]
+        {
+          "key": "show_on_this_page",
+          "label": "Show on this page",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "exit_pop",
+          "label": "Exit Pop",
+          "type": "display",
+          "generate": false,
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ],
+      "tier": "standard"
     }
-  ]
+  ],
+  "_tiers": "cta and sidebar are short, tightly-constrained strings, so they run on the fast model. content and hero are prose and stay on standard. Verify on /costs that the swap actually saved money before extending it \u2014 mixing models within a run costs some cache efficiency."
 }

@@ -6,8 +6,9 @@ const nextConfig: NextConfig = {
   // carries no toolchain and no dev dependencies.
   output: "standalone",
   // playwright-core + sharp are used only inside Inngest steps on the Node runtime.
-  serverExternalPackages: ["playwright-core", "sharp"],
-  experimental: { typedRoutes: true },
+  // playwright-core is used only inside Inngest steps, on the Node runtime.
+  serverExternalPackages: ["playwright-core"],
+  typedRoutes: true,
 };
 
 export default nextConfig;

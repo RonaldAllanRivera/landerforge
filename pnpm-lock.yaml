@@ -38,9 +38,6 @@ importers:
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
-      sharp:
-        specifier: ^0.34.4
-        version: 0.34.5
       zod:
         specifier: ^4.1.12
         version: 4.4.3
@@ -2312,7 +2309,8 @@ snapshots:
       protobufjs: 7.6.5
       yargs: 17.7.3
 
-  '@img/colour@1.1.0': {}
+  '@img/colour@1.1.0':
+    optional: true
 
   '@img/sharp-darwin-arm64@0.34.5':
     optionalDependencies:
@@ -3540,7 +3538,8 @@ snapshots:
 
   deep-eql@5.0.2: {}
 
-  detect-libc@2.1.2: {}
+  detect-libc@2.1.2:
+    optional: true
 
   dom-serializer@2.0.0:
     dependencies:
@@ -4005,7 +4004,8 @@ snapshots:
 
   scheduler@0.27.0: {}
 
-  semver@7.8.5: {}
+  semver@7.8.5:
+    optional: true
 
   serialize-error-cjs@0.1.4: {}
 
@@ -4041,6 +4041,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.34.5
       '@img/sharp-win32-ia32': 0.34.5
       '@img/sharp-win32-x64': 0.34.5
+    optional: true
 
   shebang-command@2.0.0:
     dependencies:

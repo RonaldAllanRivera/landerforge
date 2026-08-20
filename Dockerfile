@@ -16,6 +16,10 @@ WORKDIR /app
 RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# git does not track empty directories, so a fresh checkout carries no `public/`
+# and the runner's COPY of it would fail. Create it here so the runner stage is
+# correct whether or not the repo has static assets yet.
+RUN mkdir -p public
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm run build
 

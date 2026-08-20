@@ -26,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version-file: package.json
+          node-version-file: .nvmrc
           cache: pnpm
 
       # --frozen-lockfile fails rather than silently resolving a drifted lockfile.
@@ -45,7 +45,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
-          node-version-file: package.json
+          node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
 

@@ -93,9 +93,25 @@ export const TemplateFieldSchema = z
 
 export type TemplateField = z.infer<typeof TemplateFieldSchema>;
 
+/**
+ * Which class of model writes this section.
+ *
+ * A manifest says "this section is cheap to write"; settings say which model is
+ * currently the cheap one. That indirection keeps manifests descriptions of the
+ * content rather than of the vendor's model line-up.
+ *
+ * Tier is per SECTION because a model is chosen per API call and a call generates a
+ * whole section. In practice that lines up: the CTA section is entirely short strings,
+ * the Content section is a thousand words of prose.
+ */
+export const SECTION_TIERS = ["standard", "fast"] as const;
+export type SectionTier = (typeof SECTION_TIERS)[number];
+
 export const TemplateSectionSchema = z.object({
   id: z.string().regex(/^[a-z0-9_]+$/),
   label: z.string(),
+  /** Omitted means "standard" — see modelForTier. */
+  tier: z.enum(SECTION_TIERS).optional(),
   /** The CMS renders this as a toggle in the section HEADER, not in the field stack. */
   presenceToggleLabel: z.string().optional(),
   /** Genuinely repeated CMS field groups — the ones with an "Add X" button. */

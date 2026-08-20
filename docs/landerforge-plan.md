@@ -906,7 +906,70 @@ Token lint rules:
 - Testimonial locations: country-level, internationally spread
 - Impressum belongs to the attached Disclaimers resource, not to generated copy. Where a country-conditional *is* generated, `{{if:country=DE}}…{{endif}}` is the shape.
 
-## Frontend (6 screens)
+## Cost controls
+
+Three levers, exposed as data rather than constants so tuning them is a form submission
+rather than a deploy. They are ordered by how much they save per unit of effort.
+
+### Where the settings live
+
+A single-row `settings` table, admin-only, read on every run:
+
+| Setting | Default | What it does |
+|---|---|---|
+| `max_calls_per_run` | 60 | Hard ceiling on API calls in one generation. The backstop against a validation loop that never converges. |
+| `standard_model` | `claude-sonnet-4-6` | Model for prose-heavy sections. |
+| `fast_model` | `claude-haiku-4-5` | Model for short, tightly constrained sections. |
+| `monthly_budget_usd` | null | Advisory. Surfaced on the cost screen; does not block. |
+
+A single row is enforced with `check (id = 1)` rather than left to convention, because a
+second row would silently shadow the first depending on read order.
+
+### Manifests choose a tier, settings choose the model
+
+`TemplateSection` gains `tier?: "standard" | "fast"`, defaulting to `standard`.
+
+The indirection is deliberate. A manifest says *this section is cheap to write*; the
+settings say *which model is currently the cheap one*. Swapping in a newer fast model is
+then one settings change rather than an edit to every manifest — and manifests stay
+descriptions of the content rather than of the vendor's model line-up.
+
+Tier is per **section**, not per field, because a model is chosen per API call and a call
+generates a whole section. In practice this lines up: the CTA section is entirely short
+strings, the Content section is a thousand words of prose.
+
+**Cache interaction, worth knowing before tuning.** The prompt cache is keyed per model,
+so mixing tiers within a run means each model maintains its own cached prefix and each
+pays one cache write for the system prompt. Interleaving also means a section's cached
+message prefix is shorter than it would be in a single-model run. Neither is severe, but
+it does mean the saving from moving a section to `fast` is smaller than the raw price
+difference suggests. Measure it on the cost screen rather than assuming.
+
+### The cost screen
+
+`/costs`, readable by anyone who can read a generation. This is what makes the other two
+levers actionable — without it, tuning is guesswork.
+
+It shows:
+
+- **Month to date**, against `monthly_budget_usd` if one is set.
+- **Cost per generation**, most recent first, so an outlier is obvious.
+- **Cache hit rate**, as the share of calls after the first in each run with
+  `cache_read_input_tokens > 0`. A number well under 100% means something varying has
+  crept into the prefix, and the plan's caching design has quietly stopped working —
+  which costs several times more and is otherwise invisible.
+- **Retry burn**: sections whose `attempt` regularly exceeds 0. A section that always
+  needs two corrective passes is a prompt or manifest problem, and fixing it is worth
+  more than any model swap.
+- **Spend by model**, so the effect of a tier change is visible rather than inferred.
+
+### Order of operations when costs look high
+
+1. Check the cache hit rate first. A broken cache costs more than any other lever saves.
+2. Then retry burn. A section failing validation every run is paying triple.
+3. Only then move sections to `fast`, and confirm on this screen that it helped.
+
+## Frontend (7 screens)
 
 ### The auth surface — sign in (`/login`) and admin (`/admin`)
 
@@ -955,6 +1018,11 @@ A corrected transcript is still valid ground truth for the `allowedSpecs` guard,
 - Flagged sections visibly marked with the violation list.
 - **Failed runs** show which step failed, the `error_message`, and a "Retry run" button that fires `generation.retry.requested { generationId, attempt }` — a distinct event with its own idempotency key, because re-firing the original event would be deduplicated for 24h. The handler re-claims the `failed` row and regenerates only the sections that aren't already `done`.
 - Run cost and cache-hit rate displayed from `generation_steps`.
+
+### 4. Costs (`/costs`)
+
+Month-to-date spend, per-generation cost, cache hit rate, retry burn, and spend by
+model. Admins additionally get the settings form described under "Cost controls".
 
 ### 3. Version history (`/projects/[id]`)
 

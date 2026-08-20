@@ -9,6 +9,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Cost controls as data rather than constants.** A single-row `settings` table holds
+  the per-run call ceiling, the model behind each tier, and an advisory monthly budget,
+  all editable by an admin on `/costs`. Manifests declare a section `tier`
+  (`standard` / `fast`) and settings decide which model that means, so swapping in a
+  newer fast model is one settings change rather than an edit to every manifest.
+- **`/costs` screen.** Leads with cache hit rate and retry burn rather than raw spend,
+  because both are invisible from outside and both cost multiples of a model swap.
+  Also shows month-to-date against budget, median run cost, spend by model, and recent
+  runs.
+- Per-model pricing, recorded per call, so a price change cannot silently rewrite
+  history and a tier change is visible rather than inferred.
+- A top navigation bar, so the admin and cost screens are reachable rather than
+  URL-only.
 - GitHub Actions CI: verify, production build, pgTAP database tests, and a Docker
   image build, with concurrency cancellation and read-only permissions.
 - 23 pgTAP tests covering RLS policies and database-enforced invariants, run against
@@ -31,6 +44,14 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   error raised before RLS is consulted. Migration `0005` states every grant explicitly,
   which is also tighter than the default: child tables are now read-only to clients.
 - Seed scripts used top-level await, which tsx cannot emit under CJS.
+- The Docker image installed with `npm ci` against a lockfile that no longer existed,
+  and CI resolved Node from `engines.node: ">=22"` — a range, which `setup-node` cannot
+  turn into a version. Pinned via `.nvmrc`.
+- `sharp` was a declared dependency imported nowhere. It was also the one package whose
+  pnpm-blocked build script actually mattered, so removing it fixed a latent runtime
+  break and shrank the image.
+- `typecheck` depended on route types that only exist after a build, so it passed
+  locally and would fail on a clean CI checkout. It now runs `next typegen` first.
 - Database tests assumed an empty database and collided with seeded templates. They now
   use fixture-only identifiers and pass against both a fresh and a working database.
 

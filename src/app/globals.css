@@ -142,3 +142,36 @@ button.ghost {
   gap: 0.6rem;
   align-items: center;
 }
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+}
+.nav a {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.nav-links a {
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.nav-links a:hover {
+  color: var(--accent);
+}
+code {
+  background: var(--surface-2);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}

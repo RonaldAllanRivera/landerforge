@@ -1,8 +1,9 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { NonRetriableError } from "inngest";
-import { anthropic, cacheHit, costUsd, MODEL } from "@/lib/anthropic/client";
+import { anthropic, cacheHit, costUsd, DEFAULT_MODEL } from "@/lib/anthropic/client";
 import { buildMessages, buildSystem, stableStringify } from "@/lib/anthropic/prompt";
 import { COPY_RULES } from "@/lib/core/rules";
+import { loadSettings, modelForTier, type Settings } from "@/lib/core/settings";
 import { scrape } from "@/lib/scrape/browserless";
 import { extractBlocks } from "@/lib/scrape/extract";
 import { type SourceBlock, SourceBlockSchema } from "@/lib/shared/blocks";
@@ -13,8 +14,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { inngest, SHARED_CONCURRENCY } from "../client";
 
 const MAX_CORRECTIVE_RETRIES = 2;
-/** A prompt bug that makes validation always fail would otherwise burn money silently. */
-const MAX_CALLS_PER_RUN = 60;
 
 type Db = ReturnType<typeof createAdminClient>;
 
@@ -51,6 +50,10 @@ export const generate = inngest.createFunction(
     const db = createAdminClient();
     const generationId = event.data.generationId as number;
     let calls = 0;
+
+    // Read once per run, not per call: a mid-run change would make the cache prefix
+    // and the call ceiling inconsistent with what the run started under.
+    const settings = await step.run("settings", () => loadSettings(db));
 
     // Conditional claim. 'failed' is accepted so a retry can re-enter; restricting it
     // to 'queued' would make the Retry button unreachable.
@@ -118,7 +121,7 @@ export const generate = inngest.createFunction(
     const brief = await step.run("brief", async () => {
       if (claimed.brief) return claimed.brief as BriefPayload;
       calls++;
-      const result = await callBrief(manifest, blocks, claimed.special_notes ?? "");
+      const result = await callBrief(manifest, blocks, claimed.special_notes ?? "", settings);
 
       /**
        * The guard runs BEFORE the write. Post-write, a failure would leave `brief`
@@ -157,7 +160,7 @@ export const generate = inngest.createFunction(
       let output: Record<string, unknown> = {};
 
       for (let attempt = 0; attempt <= MAX_CORRECTIVE_RETRIES; attempt++) {
-        if (calls >= MAX_CALLS_PER_RUN) {
+        if (calls >= settings.max_calls_per_run) {
           await appendRunNote(db, generationId, { kind: "budget_exceeded", calls });
           throw new NonRetriableError("budget exceeded");
         }
@@ -173,8 +176,16 @@ export const generate = inngest.createFunction(
             priorSections,
             blocks,
             violations: attemptViolations,
+            settings,
           });
-          await logStep(db, generationId, `generate:${section.id}`, attempt, generated.usage);
+          await logStep(
+            db,
+            generationId,
+            `generate:${section.id}`,
+            attempt,
+            generated.usage,
+            generated.model,
+          );
           return generated.output;
         });
 
@@ -235,9 +246,16 @@ async function setStatus(
   });
 }
 
-async function callBrief(manifest: TemplateManifest, blocks: SourceBlock[], notes: string) {
+async function callBrief(
+  manifest: TemplateManifest,
+  blocks: SourceBlock[],
+  notes: string,
+  settings: Settings,
+) {
   const response = await anthropic.messages.create({
-    model: MODEL,
+    // The brief is the planning-heavy call and always runs on the standard model,
+    // whatever tier the sections use.
+    model: settings.standard_model,
     max_tokens: 8000,
     system: buildSystem(`${COPY_RULES}\n\nManifest:\n${stableStringify(manifest)}`),
     messages: buildMessages({
@@ -258,8 +276,16 @@ async function callSection(args: {
   priorSections: Array<{ sectionId: string; body: string }>;
   blocks: SourceBlock[];
   violations: Violation[];
+  settings: Settings;
 }) {
   const plan = args.brief.sectionPlan.find((s) => s.sectionId === args.section.id);
+  /**
+   * The manifest names a tier; settings name the model. Note that the prompt cache is
+   * keyed per model, so mixing tiers within a run means each model keeps its own
+   * cached prefix and each pays one cache write for the system prompt — the saving is
+   * smaller than the raw price difference suggests. Confirm it on /costs.
+   */
+  const model = modelForTier(args.settings, args.section.tier);
   const corrective =
     args.violations.length > 0
       ? `\n\nYour previous attempt had these violations. Fix every one:\n${args.violations
@@ -271,7 +297,7 @@ async function callSection(args: {
       : "";
 
   const response = await anthropic.messages.create({
-    model: MODEL,
+    model,
     /**
      * Density ceiling + JSON overhead + explicit thinking headroom. max_tokens caps
      * thinking and response text together, so a budget derived from word count alone
@@ -292,7 +318,11 @@ async function callSection(args: {
     }),
   });
 
-  return { output: parseJsonResponse<Record<string, unknown>>(response), usage: response.usage };
+  return {
+    output: parseJsonResponse<Record<string, unknown>>(response),
+    usage: response.usage,
+    model,
+  };
 }
 
 /** A refusal or truncation is not a copy violation and must not spend the retry budget. */
@@ -346,17 +376,18 @@ async function logStep(
   step: string,
   attempt: number,
   usage: Anthropic.Messages.Usage,
+  model: string = DEFAULT_MODEL,
 ) {
   await db.from("generation_steps").insert({
     generation_id: generationId,
     step,
     attempt,
-    model: MODEL,
+    model,
     input_tokens: usage.input_tokens,
     output_tokens: usage.output_tokens,
     cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
     cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
-    cost_usd: costUsd(usage),
+    cost_usd: costUsd(usage, model),
   });
   // A zero read on call 2+ means a silent invalidator crept into the prefix.
   if (attempt === 0 && step !== "brief" && !cacheHit(usage)) {

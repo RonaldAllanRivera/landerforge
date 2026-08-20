@@ -26,6 +26,25 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   resolved addresses, and redirects are followed **by hand** so every hop is re-checked
   — automatic following would let a public URL redirect to a private one after the guard
   had already passed.
+
+  The first version of this guard was **still bypassable**, and a security review caught
+  it: it resolved the hostname to check it and then handed the *hostname* to `fetch`,
+  which resolved it again. Two resolutions is one too many — a name server the attacker
+  controls answers the check with a public address and the connection with a private
+  one, and the guard never sees it. That is DNS rebinding, and it makes a check that
+  looks thorough into a suggestion.
+
+  The request now goes through `node:https` with a `lookup` hook that returns the
+  already-vetted addresses, so the address checked and the address connected to are the
+  same resolution. The URL still carries the hostname, so TLS SNI and certificate
+  validation are untouched — this pins where the socket goes without weakening who it
+  must prove itself to be. Every resolved address must be public, not just the first: a
+  mixed answer is an attack, and taking whichever came first would make it a coin toss.
+  All of them are kept and handed back, so IPv4/IPv6 fallback still works — a
+  Cloudflare-fronted host answers with both.
+
+  Verified: `localtest.me`, a public hostname that resolves to loopback, is refused with
+  the address named, while a real lander fetches 64,408 characters over TLS.
 - Run notes now record which rung answered, and why a scrape failed. "No Browserless
   token", "the site refused us" and "that URL does not exist" need different responses
   and used to look identical.

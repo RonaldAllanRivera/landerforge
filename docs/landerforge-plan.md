@@ -1218,6 +1218,15 @@ insulated us from. Literal private addresses are rejected, hostnames are checked
 their resolved addresses, and redirects are followed by hand so each hop is re-checked —
 otherwise a public URL can redirect to `169.254.169.254` after the guard has passed.
 
+Checking is not enough on its own. Resolving a hostname to vet it and then passing the
+*hostname* to `fetch` means two resolutions, and a name server the attacker controls can
+answer them differently — public for the check, private for the connection. The request
+therefore goes through `node:https` with a `lookup` hook returning the vetted addresses,
+so the address checked and the address connected to are one resolution. The URL keeps
+the hostname, so TLS SNI and certificate validation are unaffected: this pins where the
+socket goes, not who it must prove itself to be. Every resolved address must be public —
+a mixed answer is an attack — and all of them are kept so IPv4/IPv6 fallback survives.
+
 - ✅ Accept: given a live lander URL, output matches source section density ±10% and uses only source-derived numbers
 - ✅ Accept: a Cloudflare-protected URL degrades to `status = 'blocked'` and the paste-source fallback produces an equivalent run
 - ✅ Accept: simulated Browserless outage mid-run completes source-less, with a `no_source` entry in `run_notes` rendered on the review screen

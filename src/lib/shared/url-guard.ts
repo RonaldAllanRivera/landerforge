@@ -95,3 +95,54 @@ function isPrivateIPv6(host: string): boolean {
   if (/^fe[89ab][0-9a-f]:/.test(address)) return true; // link-local
   return false;
 }
+
+export interface ResolvedHost {
+  address: string;
+  family: number;
+}
+
+export type Resolver = (hostname: string) => Promise<Array<{ address: string; family: number }>>;
+
+/**
+ * Resolve a hostname and refuse it unless EVERY address is public.
+ *
+ * Every address, not the first: a hostname answering with one public and one private
+ * address is an attack, and picking whichever came first would make the outcome a coin
+ * toss.
+ *
+ * Returns the approved addresses so the caller can pin the socket to them. That return
+ * value is the point — checking a hostname and then handing the same hostname to a
+ * separate resolver leaves the two free to disagree, which is DNS rebinding.
+ *
+ * All of them, not just the first: a Cloudflare-fronted host answers with both IPv6 and
+ * IPv4, and keeping the list lets Node fall back between families as it normally would.
+ * Every one has been vetted, so the pin holds whichever it picks.
+ *
+ * The resolver is a parameter so this stays testable without a name server.
+ */
+export async function vetResolvedAddress(
+  hostname: string,
+  resolver: Resolver,
+): Promise<{ ok: true; hosts: ResolvedHost[] } | { ok: false; reason: string }> {
+  if (isPrivateAddress(hostname)) {
+    return { ok: false, reason: `${hostname} is not a public address.` };
+  }
+
+  let addresses: Array<{ address: string; family: number }>;
+  try {
+    addresses = await resolver(hostname);
+  } catch (error) {
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+  if (addresses.length === 0) return { ok: false, reason: `${hostname} resolves to nothing.` };
+
+  for (const entry of addresses) {
+    if (isPrivateAddress(entry.address)) {
+      return {
+        ok: false,
+        reason: `${hostname} resolves to ${entry.address}, which is not a public address.`,
+      };
+    }
+  }
+  return { ok: true, hosts: addresses };
+}

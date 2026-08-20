@@ -757,7 +757,7 @@ Keep `thinking` **uniform across every section call** in a run; toggling it mid-
 
 Structured output via `output_config.format` with `zodOutputFormat()` and `client.messages.parse()`, keyed exactly to the manifest field keys.
 
-Size `max_tokens` as **density ceiling + JSON overhead + explicit thinking headroom**. `max_tokens` caps thinking tokens and response text together, so a budget derived from word count alone produces the classic failure: a response that is almost entirely thinking followed by truncated JSON and `stop_reason: "max_tokens"`, which would make the raised-cap retry the normal path and roughly double the cost per section. Set `output_config.effort` explicitly too — `low` or `medium` is the right register for short, tightly constrained copy fields, rather than inheriting the `high` default. On `stop_reason: "max_tokens"` retry once with a raised cap; this is **not** a validation failure and must not consume the Step 3 retry budget. On `stop_reason: "refusal"` flag the section immediately without retrying.
+Size `max_tokens` as **density ceiling + JSON overhead + explicit thinking headroom**. `max_tokens` caps thinking tokens and response text together, so a budget derived from word count alone produces the classic failure: a response that is almost entirely thinking followed by truncated JSON and `stop_reason: "max_tokens"`, which would make the raised-cap retry the normal path and roughly double the cost per section. Set `output_config.effort` explicitly too — `low` or `medium` is the right register for short, tightly constrained copy fields, rather than inheriting the default. **Measured on the real `content` section call** (Sonnet 5, `max_tokens` 16,000, identical prompt): `high` spent the entire 16,000-token budget on reasoning and returned two characters of JSON — `{}` — at $0.16 for nothing, exactly the failure predicted below; `medium` produced 2,746 output tokens and 5,543 characters of on-target copy; `low` produced 1,568 and 4,529, still inside the word target. Inheriting the default is the real hazard, because it is not stable: the same call measured 2,673 output tokens in one run and 14,963 in another. Explicit effort is what makes per-section cost predictable. On `stop_reason: "max_tokens"` retry once with a raised cap; this is **not** a validation failure and must not consume the Step 3 retry budget. On `stop_reason: "refusal"` flag the section immediately without retrying.
 
 Write each section into `generation_sections` as an upsert on `(generation_id, section_id)` so a step re-run overwrites rather than duplicating. Never allocate a version number inside a retryable step.
 
@@ -908,8 +908,77 @@ Token lint rules:
 
 ## Cost controls
 
-Three levers, exposed as data rather than constants so tuning them is a form submission
-rather than a deploy. They are ordered by how much they save per unit of effort.
+Four levers, exposed as data rather than constants so tuning them is a form submission
+rather than a deploy. The fourth — reasoning effort — was added after the first complete
+run, because it turned out to dominate the other three: output tokens were 88% of that
+run's cost ($0.571 of $0.641), against $0.030 for every cached input token in it.
+
+### Measured, not estimated
+
+Numbers below come from real runs against a real lander, not from arithmetic. The
+published estimate before any run was ~$0.24 a page; the first actual run cost more
+than that on a single section, for reasons none of which were visible in review.
+
+| What | Measured |
+|---|---|
+| System block (rules + advertorial manifest) | 3,876 tokens on Sonnet 5, 2,569 on Haiku 4.5 |
+| Cache read on the first section call | 3,871 tokens — the design works |
+| First section's uncached input, source-after-brief | 11,696 tokens |
+| First section's uncached input, source-first | 4,173 tokens (**−64%**) |
+| The brief call, previously unlogged entirely | $0.083 |
+| One section that exhausted its retries | $0.37 across three attempts |
+| One `fast`-tier section (cache write, no read) | $0.0143, against $0.0031 for the standard tier |
+
+Four runs of the same page, same source, same manifest:
+
+| Run | Change | Cost | Sections clean |
+|---|---|---|---|
+| 1 | as designed | — | **never finished** — a lint threw and the run wedged permanently |
+| 2 | crash contained, brief logged, source-first prefix | $0.6408 | 2 / 5 |
+| 3 | + explicit output contract | $0.5369 | 4 / 5 |
+| 4 | + `effort: medium` | **$0.2550** | 3 / 5 |
+
+Run 4 is 60% cheaper than run 2 and lands about where the original per-page estimate
+sat. It is not a free win: at `medium` the model undershoots a long prose target (637
+words against 757–925) where run 3 hit it, and one more section came back flagged. That
+is precisely why effort is a setting rather than a constant — the right point on that
+curve is a judgment about this template, discoverable only by running it.
+
+Four lessons worth keeping:
+
+**A validator that throws is worse than one that is wrong.** The first run never
+finished: a lint dereferenced a key the model had not supplied, and because validation
+runs outside `step.run` the exception became a 500. Inngest retried, replayed the
+memoized steps and threw again, forever, on copy that had already been paid for. The
+"never throws" rule was in a comment and nowhere else.
+
+
+
+**The cache is an ordering property, not a setting.** Caching matches on exact prefix,
+so a single block that differs early makes everything after it uncacheable no matter
+how stable that content is. `<brief>` differs between the brief call and the section
+calls; putting the identical source material after it cost 11,696 tokens on the first
+section alone. The ordering rule is now asserted in `tests/prompt.test.ts`, because it
+produces no error when broken — only a bill.
+
+**Tiering is a quality decision, not a cost one — and the first read of the data was
+wrong.** On the same section: the fast model cost $0.0207 over three attempts and was
+flagged every time, returning assembled HTML for a scaffolded field instead of the copy
+slots; the standard model cost $0.0442 over two attempts and came back clean. The fast
+tier was about twice as cheap and worth nothing. Output tokens dominate a call's cost,
+and the fast model is both cheaper per token and much terser, so the cache effects are
+second-order — real, but not the headline. They are worth knowing anyway: the prompt
+cache is keyed per model, so an interleaved fast section pays a full cache write where a
+standard section pays a read ($0.0146 against $0.0030 for the same prefix) and then
+breaks the standard model's chain for the following call, and Haiku needs 4,096 tokens
+before a breakpoint does anything at all.
+
+**Retry burn is a feedback-quality problem, not a model problem.** The section that
+spent $0.37 failed on the same violation three times because the message described the
+wrong defect — it reported a missing metric counterpart on text that already had one,
+just in the wrong order. Two other violations quoted fragments (`1, wh`, `3 w`) that
+came from a number-extraction bug, not from the copy. Unactionable feedback does not
+merely fail to fix a problem; it buys the identical failure again at full price.
 
 ### Where the settings live
 
@@ -918,8 +987,9 @@ A single-row `settings` table, admin-only, read on every run:
 | Setting | Default | What it does |
 |---|---|---|
 | `max_calls_per_run` | 60 | Hard ceiling on API calls in one generation. The backstop against a validation loop that never converges. |
-| `standard_model` | `claude-sonnet-4-6` | Model for prose-heavy sections. |
-| `fast_model` | `claude-haiku-4-5` | Model for short, tightly constrained sections. |
+| `standard_model` | `claude-sonnet-5` | Model for prose-heavy sections. |
+| `fast_model` | `claude-haiku-4-5` | Model for short, tightly constrained sections. **Unused by default** — it could not satisfy the scaffolded-field contract; see *Tiering is a quality decision*. |
+| `effort` | `medium` | Reasoning effort. **The largest lever** — output tokens were 88% of the first complete run's cost, and the same call measured 2,414 output tokens on one attempt and 11,128 on the next while the default was inherited. Ignored for models that do not support it. |
 | `monthly_budget_usd` | null | Advisory. Surfaced on the cost screen; does not block. |
 
 A single row is enforced with `check (id = 1)` rather than left to convention, because a
@@ -1046,15 +1116,26 @@ Update the marker when a phase lands; the CHANGELOG records the detail.
 | 1 | Foundation + Advertorial V1 end-to-end | **Shipped** (`v0.1.0`) |
 | 2 | Scraping + density matching | Not started |
 | 2.5 | Screenshot upload + transcription | Not started |
-| 3 | Validation loop | **Validators shipped**, corrective-loop fixtures outstanding |
+| 3 | Validation loop | **Validators shipped and exercised live**, corrective-loop fixtures outstanding |
 | 4 | Remaining manifests | Not started |
 | 5 | Versioning + diffs | Schema ready, UI not started |
 
-Phase 1 shipped its acceptance criteria except the two that need live credentials — the
-cache-hit assertion and the signup rejection — which are written as tests but only
-runnable against a real Anthropic key and Google OAuth client. Phase 3's nine lints are
-implemented and covered by 52 unit tests; what remains is the seeded bad-output fixture
-run against the live corrective loop.
+**Phase 1 is fully verified.** The cache-hit criterion held against a live key: the
+first section call of a real run read 3,871 tokens from cache, matching the measured
+system-block size, and a later call read 15,501. The signup rejection turned out not to
+need a Google client at all — it needed the auth hooks switched on in
+`supabase/config.toml`, which they were not, so locally every JWT had shipped
+`user_role: null` and the allowlist had never run. With them enabled, an unlisted
+address is refused with 403 and no `auth.users` row is created, and an allowlisted one
+carries `user_role: "admin"` in its token. Both asserted on values, not presence.
+
+Phase 3 is further along than "validators shipped" implied. The nine lints are covered by
+127 unit tests, and the corrective loop has now been exercised against live model output
+rather than fixtures — which is how three of them were found to be reporting the wrong
+thing. A section that fails now fails on real copy faults (verbatim lifting, a hardcoded
+date, an item-count miss) and is flagged with actionable text, which is the intended end
+state. What remains is a seeded bad-output fixture so the loop is regression-tested
+without spending an API call.
 
 
 ### Phase 1 — Foundation + Advertorial V1 end-to-end · **Shipped**
@@ -1211,5 +1292,7 @@ The core loop scrapes competitor landers and produces copy matching their struct
 
 Two things to settle before the phases that depend on them. **Resolved:** `{{priceRegular}}` and `{{priceDiscounted}}` render with a currency symbol, so the "no hardcoded prices" rule is satisfiable on global pages and no copy ever needs a literal `$`. And per-field `markdownBold` will not be confirmed against the live CMS — see the inference rule in the manifest section instead.
 
-1. **Confirm `claude-sonnet-4-6` supports structured outputs** before writing Step 2. The docs are ambiguous: the 4.6 migration guide prescribes `output_config.format` as the prefill replacement, but the canonical supported-models list for structured outputs names Fable 5, Opus 5, Opus 4.8, Sonnet 5, and Haiku 4.5 without mentioning Sonnet 4.6. Resolve it at runtime — `client.models.retrieve('claude-sonnet-4-6').capabilities['structured_outputs']['supported']` — and record the answer here. If it comes back false, either move to `claude-sonnet-5` (note its different tokenizer, which changes the cost model but not the caching design) or fall back to a **plain forced tool call**: a fixed single-tool array with `tool_choice: {type: "tool", name: …}` and client-side Zod validation of the tool input. Note the fallback cannot use `strict: true` — that flag is the same structured-outputs capability under a different surface, so it is unavailable in exactly the case that triggers the fallback. The caching design survives either choice; only the output mechanism changes.
+1. ~~**Confirm `claude-sonnet-4-6` supports structured outputs**~~ — **RESOLVED, and superseded.** `client.models.retrieve` reports `structured_outputs.supported: true` on Sonnet 4.6, Sonnet 5, Opus 5 and Haiku 4.5, so no fallback is needed. The pipeline has since moved to `claude-sonnet-5` anyway, which is both newer and cheaper ($2/$10 per MTok against $3/$15; about 13% cheaper in real terms once its ~30% larger token counts are accounted for).
+
+   Adopting structured outputs is now a **design** question rather than a capability one, because of an interaction the docs flag: changing `output_config.format` invalidates the prompt cache for that thread. A per-section schema would therefore change the cached prefix on every call — precisely the trap already documented for `tools`, and the most expensive mistake available in this codebase. Any adoption must use a schema that is byte-stable for the whole run, e.g. `{"fields": [{"key": ..., "value": ...}]}` rather than one object shape per section, and must be verified against `cache_read_input_tokens` before being kept.
 2. **Simple Page** has no CMS capture yet. Phase 2.5 owns authoring its manifest and can transcribe the capture once it exists, so the only real blocker is somebody taking the screenshot. If Phase 2.5 slips, define the manifest inline here instead.

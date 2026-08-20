@@ -88,20 +88,30 @@ a limit the clipboard text blows past.
 | Validation | Pure functions, no I/O | Testable in milliseconds, reusable in a React Native client. |
 | Auth | Google OAuth, DB-enforced allowlist | The gate runs *before* the user row exists, so an unauthorized account never holds a session. |
 | Authorization | RLS, with role in a JWT claim | The database is the boundary; no rule lives only in application code. |
-| Prompt caching | Two breakpoints on an append-only prefix | Cuts the dominant input cost by roughly an order of magnitude. |
+| Prompt caching | Three breakpoints on an append-only prefix | Cuts the dominant input cost by roughly an order of magnitude. Measured: 11,696 uncached tokens on the first section call became 4,173 by fixing the block ORDER alone. |
 
 ### Prompt caching is a design constraint, not an optimization
 
 Each section call resends the brief and every previously generated section, so by the
-last section the run is re-billing nearly the whole page. Two cache breakpoints fix
-that — one on the system prefix, one moving along the completed sections — but only if
-the prefix is byte-identical and strictly append-only.
+last section the run is re-billing nearly the whole page. Three cache breakpoints fix
+that — the system prefix, the source material, and one moving along the completed
+sections — but only if the prefix is byte-identical and strictly append-only.
 
 That has consequences throughout: the tools array stays empty (a per-section tool
 definition would change the very front of the prefix and make every call a full miss),
 JSON is serialized with sorted keys, and nothing per-call may appear before the last
-breakpoint. `generation_steps` records `cache_read_input_tokens` on every call, because
-a silent cache miss is invisible otherwise and simply costs several times more.
+breakpoint. The same rule rules out a per-section structured-output schema, for exactly
+the same reason. `generation_steps` records `cache_read_input_tokens` on every call,
+because a silent cache miss is invisible otherwise and simply costs several times more.
+
+Caching matches on **exact prefix**, which makes this an ordering property rather than a
+setting — and ordering bugs are silent. The source material is byte-identical on every
+call in a run, but it sat *after* the brief, whose contents differ between the brief
+call and the section calls; that one difference made the whole block uncacheable across
+the boundary and cost 11,696 tokens on the first section alone. Nothing failed. The
+ordering is now asserted in `tests/prompt.test.ts`, and the model-specific minimum
+prefix length is recorded too, because a breakpoint below it is ignored with no error
+and no usage fields — 4,096 tokens on Haiku against 1,024 on Sonnet.
 
 ### Durability
 
@@ -193,8 +203,10 @@ src/lib/shared/      pure domain logic — no framework imports, no I/O
   ├── blocks.ts        the typed block substrate
   ├── normalize.ts     numeric/unit normalisation
   ├── section-plan.ts  code-built density targets
+  ├── prompt.ts        cache-aware message assembly
+  ├── pricing.ts       per-model prices and cost arithmetic
   └── lints/           the nine validators
-src/lib/anthropic/   client, cost accounting, cache-aware prompt assembly
+src/lib/anthropic/   the SDK client (everything pure lives in shared/)
 src/lib/scrape/      Browserless connection, HTML → blocks
 src/lib/core/        transport-agnostic operations
 src/lib/inngest/     the durable pipeline

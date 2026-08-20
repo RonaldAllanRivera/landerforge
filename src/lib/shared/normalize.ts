@@ -117,8 +117,21 @@ const UNIT_PATTERN = [
  */
 export function extractNumbers(normalisedText: string): NumericMention[] {
   const out: NumericMention[] = [];
+  /**
+   * Two guards learned from a real run, where "In 1, when we..." was reported as the
+   * spec `1 Wh` and "3 weeks" as `3 W`, both quoted back to the model as truncated
+   * nonsense it could not act on.
+   *
+   * Digits: a comma is a thousands separator only when three digits follow it. The old
+   * `\d[\d,]*` accepted a TRAILING comma, which let the next word's first letters be
+   * read as a unit.
+   *
+   * Units: an alphabetic unit must not be glued to more letters. Nearly every short
+   * unit here is also the start of a common word — w/week, h/hour, g/good, m/my — so
+   * without the boundary the alternation matches inside ordinary prose.
+   */
   const pattern = new RegExp(
-    `(~)?\\s*([$€£])?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(\\+)?\\s*(${UNIT_PATTERN})?`,
+    `(~)?\\s*([$€£])?\\s*(\\d+(?:,\\d{3})*(?:\\.\\d+)?)\\s*(\\+)?\\s*((?:${UNIT_PATTERN})(?![a-z]))?`,
     "gi",
   );
 

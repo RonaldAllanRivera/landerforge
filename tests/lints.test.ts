@@ -214,3 +214,34 @@ describe("optional fields", () => {
     expect(lintField(ctx("", { field: f }))).toHaveLength(0);
   });
 });
+
+/**
+ * From the first real generation. The model wrote
+ * "**Works from up to 30 ft (9.1 m) away**" and was told "30 ft needs a metric
+ * counterpart in m earlier in the sentence". A counterpart was right there, so the
+ * message read as simply wrong and the text went unchanged through all three
+ * corrective attempts — $0.19 of retries buying the same output.
+ */
+describe("dual-unit feedback names the actual problem", () => {
+  const dual = (text: string) => lintField(ctx(text)).filter((v) => v.category === "compliance");
+
+  it("says imperial-first, not missing, when the metric value follows", () => {
+    const v = dual("Works from up to 30 ft (9.1 m) away.");
+    expect(v).toHaveLength(1);
+    expect(v[0]?.message).toContain("imperial-first");
+    expect(v[0]?.message).not.toContain("needs a metric counterpart");
+  });
+
+  it("shows the corrected ordering the model should write", () => {
+    expect(dual("Works from up to 30 ft (9.1 m) away.")[0]?.message).toContain("9.1 m (30 ft)");
+  });
+
+  it("still reports a genuinely absent counterpart as missing", () => {
+    const v = dual("Works from up to 30 ft away.");
+    expect(v[0]?.message).toContain("needs a metric counterpart");
+  });
+
+  it("accepts metric-first", () => {
+    expect(dual("Works from up to 9.1 m (30 ft) away.")).toHaveLength(0);
+  });
+});

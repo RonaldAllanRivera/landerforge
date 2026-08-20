@@ -3,7 +3,7 @@
 # `make` on its own lists the targets.
 
 .DEFAULT_GOAL := help
-.PHONY: help install dev db-start db-reset db-stop seed test test-db verify build docker clean
+.PHONY: help install dev db-start db-reset db-stop seed seed-dev env-local dev-generate test test-db verify build docker clean
 
 help: ## List available targets
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) \
@@ -47,3 +47,9 @@ clean: ## Remove build output and caches
 
 seed-dev: ## Create a local admin account (local Supabase only)
 	pnpm run seed:dev
+
+env-local: ## Write the running local Supabase credentials into .env
+	pnpm run env:local
+
+dev-generate: ## Run one real generation locally (needs `make dev` running)
+	pnpm run dev:generate

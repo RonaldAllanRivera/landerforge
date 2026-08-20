@@ -246,8 +246,7 @@
           "linkPolicy": "none",
           "voice": "brand_we"
         }
-      ],
-      "tier": "fast"
+      ]
     },
     {
       "id": "reviews",
@@ -338,8 +337,7 @@
           "linkPolicy": "none",
           "voice": "second_person"
         }
-      ],
-      "tier": "fast"
+      ]
     },
     {
       "id": "exit_pop",

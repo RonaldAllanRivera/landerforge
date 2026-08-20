@@ -12,6 +12,12 @@ export const LINT_CATEGORIES = [
   "compliance",
   "spec",
   "verbatim",
+  /**
+   * Not a copy rule: a lint itself threw. Kept in-band so the section is flagged for a
+   * human rather than lost, but excluded from corrective feedback — the model cannot
+   * fix a bug in our validator, and quoting one back only burns the retry budget.
+   */
+  "internal",
 ] as const;
 
 export type LintCategory = (typeof LINT_CATEGORIES)[number];

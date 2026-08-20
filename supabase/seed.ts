@@ -9,6 +9,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 import { parseManifest } from "../src/lib/shared/manifest";
+import { loadEnv } from "./load-env";
+
+loadEnv();
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

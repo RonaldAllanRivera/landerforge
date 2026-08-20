@@ -19,6 +19,8 @@ interface Props {
   errorMessage: string | null;
   runNotes: unknown[];
   costUsd: number | null;
+  /** Spend and attempt count per section id. */
+  spend: Record<string, { usd: number; attempts: number; model: string | null }>;
   manifest: TemplateManifest;
   initialSections: SectionRow[];
 }
@@ -123,6 +125,7 @@ export function ReviewScreen(props: Props) {
           order — so copying into the CMS is a straight top-to-bottom walk. */}
       {props.manifest.sections.map((section) => {
         const row = bySection.get(section.id);
+        const spent = props.spend[section.id];
         return (
           <section key={section.id}>
             <h2>
@@ -130,6 +133,14 @@ export function ReviewScreen(props: Props) {
               {row && (
                 <span className={`badge ${row.status === "flagged" ? "flag" : "ok"}`}>
                   {row.status}
+                </span>
+              )}{" "}
+              {spent && (
+                /* An expensive section that also failed is the one worth changing
+                   something for; a cheap one that failed rarely is not. */
+                <span className={`badge ${spent.attempts > 1 ? "flag" : ""}`}>
+                  ${spent.usd.toFixed(3)}
+                  {spent.attempts > 1 && ` · ${spent.attempts} attempts`}
                 </span>
               )}
             </h2>

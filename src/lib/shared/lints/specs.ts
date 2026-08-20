@@ -48,17 +48,27 @@ export const complianceLint: Lint = (ctx) => {
       if (!n.unit || !IMPERIAL_UNITS.has(n.unit)) continue;
       const metric = metricCounterpart(n.unit);
       if (!metric) continue;
-      const hasMetric = numbers.some((other) => other.unit === metric && other.index < n.index);
-      if (!hasMetric) {
-        out.push(
-          violation(
-            ctx,
-            "compliance",
-            `${n.raw} needs a metric counterpart in ${metric} earlier in the sentence`,
-            sentence.trim(),
-          ),
-        );
-      }
+      const hasMetricBefore = numbers.some((o) => o.unit === metric && o.index < n.index);
+      if (hasMetricBefore) continue;
+
+      /**
+       * Distinguish "missing" from "present but second". The old message said a
+       * counterpart was needed even when one was right there in brackets, so on a real
+       * run the model read "needs a metric counterpart", saw it already had one, and
+       * left the text unchanged through all three corrective attempts. Unactionable
+       * feedback does not just fail to fix the problem, it buys the same failure again.
+       */
+      const after = numbers.find((o) => o.unit === metric && o.index > n.index);
+      out.push(
+        violation(
+          ctx,
+          "compliance",
+          after
+            ? `${n.raw} is imperial-first; metric leads, so write ${after.raw} (${n.raw})`
+            : `${n.raw} needs a metric counterpart in ${metric} earlier in the sentence`,
+          sentence.trim(),
+        ),
+      );
     }
   }
   return out;

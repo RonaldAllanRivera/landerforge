@@ -1,19 +1,36 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { NonRetriableError } from "inngest";
-import { anthropic, cacheHit, costUsd, DEFAULT_MODEL } from "@/lib/anthropic/client";
-import { buildMessages, buildSystem, stableStringify } from "@/lib/anthropic/prompt";
+import {
+  anthropic,
+  cacheHit,
+  cacheInert,
+  costUsd,
+  DEFAULT_MODEL,
+  MIN_CACHEABLE_TOKENS,
+} from "@/lib/anthropic/client";
 import { COPY_RULES } from "@/lib/core/rules";
-import { loadSettings, modelForTier, type Settings } from "@/lib/core/settings";
+import { effortFor, loadSettings, modelForTier, type Settings } from "@/lib/core/settings";
 import { scrape } from "@/lib/scrape/browserless";
 import { extractBlocks } from "@/lib/scrape/extract";
 import { type SourceBlock, SourceBlockSchema } from "@/lib/shared/blocks";
-import { lintField, type Violation } from "@/lib/shared/lints";
+import { type FieldValue, lintField, type Violation } from "@/lib/shared/lints";
 import { parseManifest, type TemplateManifest } from "@/lib/shared/manifest";
+import { outputContract } from "@/lib/shared/output-contract";
+import { buildMessages, buildSystem, stableStringify } from "@/lib/shared/prompt";
 import { buildSectionPlan, type SectionPlan } from "@/lib/shared/section-plan";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inngest, SHARED_CONCURRENCY } from "../client";
 
 const MAX_CORRECTIVE_RETRIES = 2;
+
+/**
+ * A ceiling, not a reservation: only tokens actually emitted are billed, so headroom is
+ * free and truncation is not. It has to cover thinking and response text together, and
+ * Claude 4.7 and later emit roughly 30% more tokens for the same prose, which alone
+ * would have pushed the previous 8k budget into `stop_reason: "max_tokens"` on the
+ * longest sections.
+ */
+const MAX_OUTPUT_TOKENS = 16_000;
 
 type Db = ReturnType<typeof createAdminClient>;
 
@@ -121,7 +138,20 @@ export const generate = inngest.createFunction(
     const brief = await step.run("brief", async () => {
       if (claimed.brief) return claimed.brief as BriefPayload;
       calls++;
-      const result = await callBrief(manifest, blocks, claimed.special_notes ?? "", settings);
+      // Not named `brief`: that is the outer step's own binding, and shadowing it here
+      // reads as a self-reference.
+      const briefCall = await callBrief(manifest, blocks, claimed.special_notes ?? "", settings);
+      const result = briefCall.result;
+
+      /**
+       * Logged like any other call. It was not, and it is the most expensive one in the
+       * run: it carries the whole source material and writes the cache every later call
+       * reads. Its absence meant `total_cost_usd` and every figure on /costs understated
+       * a run by the largest single line item, and the cache-hit denominator treated the
+       * first SECTION as the run's first call — hiding a real read behind an exclusion
+       * meant for the write.
+       */
+      await logStep(db, generationId, "brief", 0, briefCall.usage, briefCall.model);
 
       /**
        * The guard runs BEFORE the write. Post-write, a failure would leave `brief`
@@ -195,7 +225,12 @@ export const generate = inngest.createFunction(
          * feedback, fighting this loop.
          */
         violations = validateSection(manifest, section.id, output, brief, blocks);
-        if (violations.length === 0) break;
+        /**
+         * Stop on "nothing the model can fix", not on "nothing wrong". An internal
+         * violation means one of our own checks threw; quoting it back would spend the
+         * whole retry budget re-buying the identical failure.
+         */
+        if (!violations.some(isActionable)) break;
       }
 
       const sectionViolations = violations;
@@ -235,6 +270,11 @@ export const generate = inngest.createFunction(
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
+/** A violation the model can actually act on. See the "internal" lint category. */
+function isActionable(v: Violation): boolean {
+  return v.category !== "internal";
+}
+
 async function setStatus(
   step: { run: (id: string, fn: () => Promise<unknown>) => Promise<unknown> },
   db: Db,
@@ -256,7 +296,8 @@ async function callBrief(
     // The brief is the planning-heavy call and always runs on the standard model,
     // whatever tier the sections use.
     model: settings.standard_model,
-    max_tokens: 8000,
+    max_tokens: MAX_OUTPUT_TOKENS,
+    output_config: effortFor(settings, settings.standard_model),
     system: buildSystem(`${COPY_RULES}\n\nManifest:\n${stableStringify(manifest)}`),
     messages: buildMessages({
       systemPrompt: "",
@@ -266,7 +307,11 @@ async function callBrief(
       sectionInstructions: BRIEF_INSTRUCTIONS,
     }),
   });
-  return parseJsonResponse<Omit<BriefPayload, "sectionPlan">>(response);
+  return {
+    result: parseJsonResponse<Omit<BriefPayload, "sectionPlan">>(response),
+    usage: response.usage,
+    model: settings.standard_model,
+  };
 }
 
 async function callSection(args: {
@@ -280,15 +325,16 @@ async function callSection(args: {
 }) {
   const plan = args.brief.sectionPlan.find((s) => s.sectionId === args.section.id);
   /**
-   * The manifest names a tier; settings name the model. Note that the prompt cache is
-   * keyed per model, so mixing tiers within a run means each model keeps its own
-   * cached prefix and each pays one cache write for the system prompt — the saving is
-   * smaller than the raw price difference suggests. Confirm it on /costs.
+   * The manifest names a tier; settings name the model. The advertorial template
+   * declares no fast sections — measured, the fast model produced an invalid value for
+   * its scaffolded field on all three attempts while costing half as much, which is not
+   * a saving. See SECTION_TIERS for the cache-isolation caveat that goes with it.
    */
   const model = modelForTier(args.settings, args.section.tier);
+  const actionable = args.violations.filter(isActionable);
   const corrective =
-    args.violations.length > 0
-      ? `\n\nYour previous attempt had these violations. Fix every one:\n${args.violations
+    actionable.length > 0
+      ? `\n\nYour previous attempt had these violations. Fix every one:\n${actionable
           .map(
             (v) =>
               `- [${v.category}] ${v.address}: ${v.message}${v.excerpt ? ` — "${v.excerpt}"` : ""}`,
@@ -298,12 +344,14 @@ async function callSection(args: {
 
   const response = await anthropic.messages.create({
     model,
+    max_tokens: MAX_OUTPUT_TOKENS,
     /**
-     * Density ceiling + JSON overhead + explicit thinking headroom. max_tokens caps
-     * thinking and response text together, so a budget derived from word count alone
-     * yields a response that is almost entirely thinking plus truncated JSON.
+     * Explicit, never inherited. The default is not stable — the same section call was
+     * measured at 2,414 output tokens on one attempt and 14,820 on the next — and
+     * output tokens were 88% of a full run's cost. `high` is the failure case worth
+     * knowing: it spent an entire 16,000-token budget reasoning and returned `{}`.
      */
-    max_tokens: 8000,
+    output_config: effortFor(args.settings, model),
     system: buildSystem(`${COPY_RULES}\n\nManifest:\n${stableStringify(args.manifest)}`),
     messages: buildMessages({
       systemPrompt: "",
@@ -312,8 +360,8 @@ async function callSection(args: {
       sourceBlocks: args.blocks,
       sectionInstructions:
         `Write section "${args.section.id}".\n` +
-        `Constraints: ${stableStringify(plan ?? {})}\n` +
-        "Return a JSON object keyed by field key." +
+        (plan?.formatNotes ? `Format notes: ${plan.formatNotes}\n` : "") +
+        `\n${outputContract(args.section, plan)}` +
         corrective,
     }),
   });
@@ -352,7 +400,9 @@ function validateSection(
       manifest,
       field,
       address: `${sectionId}.${field.key}`,
-      value: value as string,
+      // Cast, because this is JSON.parse output. lintField gates the shape at runtime
+      // before any check reads it, which is what makes the cast safe rather than hopeful.
+      value: value as FieldValue,
       plan: plan?.fields[field.key],
       blocks,
       allowedSpecs: brief.allowedSpecs,
@@ -389,9 +439,23 @@ async function logStep(
     cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
     cost_usd: costUsd(usage, model),
   });
-  // A zero read on call 2+ means a silent invalidator crept into the prefix.
+  /**
+   * Two different failures wearing the same face, separated because the fixes are
+   * opposite. An ordinary miss still WRITES, and means something per-call crept into
+   * the prefix. An inert call neither writes nor reads, and means the prefix never
+   * reached the model's minimum — the breakpoint was ignored outright, with no error
+   * and no usage fields to notice it by.
+   */
   if (attempt === 0 && step !== "brief" && !cacheHit(usage)) {
-    console.warn(`[cache] miss on ${step} — check the prefix for a per-call value`);
+    if (cacheInert(usage)) {
+      const min = MIN_CACHEABLE_TOKENS[model];
+      console.warn(
+        `[cache] INERT on ${step} (${model}) — nothing written or read. The prefix is ` +
+          `under this model's ${min ?? "?"}-token minimum, so cache_control did nothing.`,
+      );
+    } else {
+      console.warn(`[cache] miss on ${step} — check the prefix for a per-call value`);
+    }
   }
 }
 

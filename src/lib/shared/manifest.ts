@@ -104,6 +104,33 @@ export type TemplateField = z.infer<typeof TemplateFieldSchema>;
  * whole section. In practice that lines up: the CTA section is entirely short strings,
  * the Content section is a thousand words of prose.
  */
+/**
+ * The tier a section runs at. `fast` is a real lever but a sharp one, and it is off by
+ * default on the advertorial template for a QUALITY reason with a cost caveat attached
+ * — not, as first supposed, because it is straightforwardly cheaper to avoid.
+ *
+ * What the numbers actually said, on the same section across two runs:
+ *
+ *   Haiku 4.5   $0.0207 over three attempts — and FLAGGED. It returned assembled HTML
+ *               for the scaffolded field every time and never produced a valid value.
+ *   Sonnet 5    $0.0442 over two attempts — and clean.
+ *
+ * So the fast tier was about twice as cheap and worth nothing, which is the only
+ * comparison that matters. Output tokens dominate a call's cost, and Haiku is both
+ * cheaper per token and much terser; the cache effects below are real but second-order.
+ *
+ * The cache caveat, since it is easy to reason about backwards: the prompt cache is
+ * keyed per model, so an interleaved fast section cannot read the standard model's
+ * prefix. It pays a full cache write where a standard section pays a read — measured at
+ * $0.0146 against $0.0030 for the same prefix, roughly 5x on that component alone — and
+ * it then breaks the standard model's chain for the following call. Haiku also needs
+ * 4,096 tokens before a breakpoint does anything, four times Sonnet's minimum, so the
+ * system block silently fails to cache on it at all. It additionally rejects
+ * `output_config.effort`, which is the largest cost lever in the pipeline.
+ *
+ * The lever remains available. It suits many consecutive short sections on a template
+ * where the fast model can actually satisfy the field contract.
+ */
 export const SECTION_TIERS = ["standard", "fast"] as const;
 export type SectionTier = (typeof SECTION_TIERS)[number];
 

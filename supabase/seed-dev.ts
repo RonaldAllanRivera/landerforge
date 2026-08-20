@@ -8,9 +8,12 @@
  * with a known password.
  */
 import { createClient } from "@supabase/supabase-js";
+import { loadEnv } from "./load-env";
 
 const EMAIL = process.env.DEV_EMAIL ?? "dev@localhost.test";
 const PASSWORD = process.env.DEV_PASSWORD ?? "devpassword123";
+
+loadEnv();
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";

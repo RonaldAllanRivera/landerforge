@@ -16,17 +16,30 @@ Everything except the copywriting runs locally in Docker. No accounts, no deploy
 Google setup.
 
 ```bash
-cp .env.example .env   # put your Anthropic key in it
 make install
 make db-start          # Supabase runs locally in Docker
+make env-local         # writes the local database keys into .env
+#                        ↑ now put your Anthropic key in .env
 make db-reset          # creates the tables
 make seed              # loads the templates
 make seed-dev          # creates a local admin account
 make dev               # http://localhost:3000
 ```
 
-`make db-start` prints the local keys — copy `PUBLISHABLE_KEY` and `SECRET_KEY` into
-your `.env` before running the seeds.
+`make env-local` creates `.env` if it is missing and fills in the three Supabase values
+from the running stack. Copying them by hand is the one step here that fails silently:
+the placeholders in `.env.example` look plausible, and this project pins the API to port
+**55321** rather than Supabase's usual 54321, so a wrong value produces no error — the
+app just cannot reach the database. Only the Anthropic key is yours to paste in.
+
+To watch the pipeline run without clicking through the wizard:
+
+```bash
+make dev-generate      # fetches a lander, extracts it, and queues a real generation
+```
+
+It prints a link to the review screen and to `/costs`. One run of the advertorial
+template costs roughly $0.25 at the shipped settings.
 
 Sign in at `/login` with **dev@localhost.test / devpassword123**, which `make seed-dev`
 created. That is a real account going through the real allowlist and role checks, not a

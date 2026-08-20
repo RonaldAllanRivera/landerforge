@@ -8,7 +8,7 @@
     "pnpm": ">=10"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.0",
+    "@anthropic-ai/sdk": "^0.120.0",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "cheerio": "^1.1.2",
@@ -45,7 +45,9 @@
     "db:start": "supabase start",
     "db:reset": "supabase db reset",
     "db:test": "supabase test db",
-    "seed:dev": "tsx supabase/seed-dev.ts"
+    "seed:dev": "tsx supabase/seed-dev.ts",
+    "env:local": "tsx scripts/env-local.ts",
+    "dev:generate": "tsx scripts/dev-generate.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

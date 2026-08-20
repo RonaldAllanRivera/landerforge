@@ -273,15 +273,26 @@ max_frequency = "5s"
 # Force log out if the user has been inactive longer than the specified duration.
 # inactivity_timeout = "8h"
 
-# This hook runs before a new user is created and allows developers to reject the request based on the incoming user object.
-# [auth.hook.before_user_created]
-# enabled = true
-# uri = "pg-functions://postgres/auth/before-user-created-hook"
+# Both hooks are installed by migration 0002 and MUST be enabled here as well, or the
+# local stack silently behaves differently from production — where they are switched on
+# in the dashboard instead.
+#
+# Left off, the failures are quiet rather than loud: every JWT ships `user_role: null`,
+# so login succeeds and every admin screen and write policy denies without saying why,
+# and the allowlist gate never runs, so any address can sign up locally. Both were off
+# here until an admin account seeded by `make seed-dev` turned out to have no role.
 
-# This hook runs before a token is issued and allows you to add additional claims based on the authentication method used.
-# [auth.hook.custom_access_token]
-# enabled = true
-# uri = "pg-functions://<database>/<schema>/<hook_name>"
+# Rejects a signup before the auth.users row exists, so an unlisted account never
+# holds a session.
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/hook_restrict_signup"
+
+# Stamps user_role into the access token. Assert the claim's VALUE in tests, never
+# just its presence — the failure mode is a null claim, not a missing one.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]

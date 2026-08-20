@@ -1,0 +1,984 @@
+{
+  "slug": "interstitial_v1",
+  "name": "Interstitial V1",
+  "sections": [
+    {
+      "id": "hero",
+      "label": "Hero",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "show_top_strip",
+          "label": "Show Top Strip",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "top_strip_text",
+          "label": "Top Strip Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            6,
+            11
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "page_title",
+          "label": "Page Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            5,
+            9
+          ],
+          "voice": "second_person",
+          "notes": "Short and blunt on this template — six words on both live pages.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "hero_image",
+          "label": "Hero Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "hero_description",
+          "label": "Hero Description (markdown bullet list)",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            15,
+            45
+          ],
+          "fallbackItemCount": 5,
+          "voice": "brand_we",
+          "notes": "Four to six bullets measured; a scannable spec strip, not prose.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "unique_mechanism",
+      "label": "Unique Mechanism",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            5,
+            8
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            32,
+            48
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "icon",
+          "label": "Icon",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "introduction",
+      "label": "Introduction",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            4
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "subtitle",
+          "label": "Subtitle",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            8
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            100,
+            150
+          ],
+          "markdownBold": true,
+          "productNameFormat": "plain",
+          "voice": "brand_we",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "slideshow_images",
+          "label": "Slideshow Images",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "authority_testimonial",
+      "label": "Authority Testimonial",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "headline_quote",
+          "label": "Headline Quote",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            8
+          ],
+          "voice": "expert",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "testimonial_body",
+          "label": "Testimonial Body",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            35,
+            55
+          ],
+          "productNameFormat": "plain",
+          "voice": "expert",
+          "notes": "An expert endorsement, so it takes the same compliance treatment as any other unverified claim.",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            3
+          ],
+          "specPolicy": "exempt",
+          "voice": "expert",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "title_role",
+          "label": "Title / Role",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "voice": "expert",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "photo",
+          "label": "Photo",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "features",
+      "label": "Features",
+      "repeat": [
+        4,
+        4
+      ],
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "section_title",
+          "label": "Section Title",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            5,
+            9
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "section_body",
+          "label": "Section Body",
+          "type": "textarea",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            10,
+            20
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            12,
+            20
+          ],
+          "notes": "Exactly four, per the CMS note. Total across all four.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "image",
+          "label": "Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "technology",
+      "label": "Technology",
+      "repeat": [
+        3,
+        6
+      ],
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "section_title",
+          "label": "Section Title",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            2,
+            5
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "section_subtitle",
+          "label": "Section Subtitle",
+          "type": "textarea",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            5,
+            9
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "desktop_image",
+          "label": "Desktop Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "mobile_image",
+          "label": "Mobile Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            12,
+            24
+          ],
+          "notes": "Total across the points.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            30,
+            55
+          ],
+          "notes": "One short line per point. Total across the points.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "cta_strip",
+      "label": "CTA Strip",
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "headline",
+          "label": "Headline",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "tagline",
+          "label": "Tagline",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            9
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "benefits",
+      "label": "Benefits (Detail Blocks)",
+      "presenceToggleLabel": "Show section",
+      "repeat": [
+        1,
+        4
+      ],
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            10
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            60,
+            95
+          ],
+          "markdownBold": true,
+          "productNameFormat": "plain",
+          "notes": "The 'Meet the product' block, so it uses brand we. 78 words measured.",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "image",
+          "label": "Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "steps",
+      "label": "Steps",
+      "presenceToggleLabel": "Show section",
+      "repeat": [
+        3,
+        3
+      ],
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "section_title",
+          "label": "Section Title",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "section_body",
+          "label": "Section Body",
+          "type": "textarea",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "step_title",
+          "label": "Step Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            5,
+            9
+          ],
+          "notes": "Exactly three, per the CMS note.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            18,
+            32
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "image",
+          "label": "Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "special_offer",
+      "label": "Special Offer",
+      "presenceToggleLabel": "Stock Countdown",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "subtitle",
+          "label": "Subtitle",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            6,
+            11
+          ],
+          "productNameFormat": "plain",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "show_countdown",
+          "label": "Show Countdown to Midnight",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "promo_code_text",
+          "label": "Promotional Code Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "price",
+          "label": "Price",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            5
+          ],
+          "notes": "Uses {{priceDiscounted}}; never a literal amount.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "promises",
+          "label": "Promises (markdown)",
+          "type": "markdown",
+          "generate": true,
+          "fallbackWordTarget": [
+            13,
+            22
+          ],
+          "fallbackItemCount": 4,
+          "markdownBold": true,
+          "notes": "Four bullets on both live pages: shipping, guarantee, support, bulk discount.",
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "image",
+          "label": "Image",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "testimonials",
+      "label": "Testimonials",
+      "presenceToggleLabel": "Show section",
+      "repeat": [
+        3,
+        8
+      ],
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "section_title",
+          "label": "Section Title",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            2,
+            4
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "section_subtitle",
+          "label": "Section Subtitle",
+          "type": "text",
+          "generate": true,
+          "repeats": false,
+          "fallbackWordTarget": [
+            4,
+            8
+          ],
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            8,
+            14
+          ],
+          "specPolicy": "exempt",
+          "voice": "reviewer",
+          "notes": "Total across the cards. Generic full names, varied countries.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "testimonial_text",
+          "label": "Testimonial Text",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            60,
+            110
+          ],
+          "productNameFormat": "plain",
+          "voice": "reviewer",
+          "notes": "Short on this template — about 16 words each. Total across the cards.",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "photo",
+          "label": "Photo",
+          "type": "display",
+          "generate": false,
+          "displayKind": "image",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "label": "FAQ",
+      "repeat": [
+        4,
+        8
+      ],
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "question",
+          "label": "Question",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            24,
+            42
+          ],
+          "voice": "second_person",
+          "notes": "Total across the questions.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "answer",
+          "label": "Answer",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            70,
+            120
+          ],
+          "productNameFormat": "plain",
+          "notes": "Total across the answers. Four to six pairs measured.",
+          "markdownBold": false,
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "scarcity",
+      "label": "Scarcity",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Title",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "productNameFormat": "plain",
+          "voice": "second_person",
+          "markdownBold": false,
+          "linkPolicy": "none"
+        },
+        {
+          "key": "subtitle",
+          "label": "Subtitle",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            4,
+            8
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "body",
+          "label": "Body",
+          "type": "textarea",
+          "generate": true,
+          "fallbackWordTarget": [
+            12,
+            22
+          ],
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "label": "CTA",
+      "presenceToggleLabel": "Mobile Sticky CTA",
+      "defaultPresent": true,
+      "tier": "fast",
+      "fields": [
+        {
+          "key": "cta_button_text",
+          "label": "CTA Button Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            7
+          ],
+          "charLimit": 44,
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "mobile_cta_text",
+          "label": "Mobile CTA Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            2,
+            4
+          ],
+          "charLimit": 24,
+          "voice": "second_person",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none"
+        },
+        {
+          "key": "cta_footer_text",
+          "label": "CTA Footer Text",
+          "type": "text",
+          "generate": true,
+          "fallbackWordTarget": [
+            3,
+            6
+          ],
+          "notes": "Shipping or guarantee reassurance under the button.",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "labels_translations",
+      "label": "Labels & Translations",
+      "defaultPresent": true,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "labels_translations",
+          "label": "Labels & Translations",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    },
+    {
+      "id": "exit_pop",
+      "label": "Exit Pop",
+      "defaultPresent": false,
+      "tier": "standard",
+      "fields": [
+        {
+          "key": "show_on_this_page",
+          "label": "Show on this page",
+          "type": "display",
+          "generate": false,
+          "displayKind": "toggle",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        },
+        {
+          "key": "exit_pop",
+          "label": "Exit Pop",
+          "type": "display",
+          "generate": false,
+          "displayKind": "relation",
+          "markdownBold": false,
+          "productNameFormat": "none",
+          "linkPolicy": "none",
+          "voice": "brand_we"
+        }
+      ]
+    }
+  ]
+}

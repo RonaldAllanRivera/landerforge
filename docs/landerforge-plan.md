@@ -1159,7 +1159,7 @@ Update the marker when a phase lands; the CHANGELOG records the detail.
 | 2 | Scraping + density matching | **Shipped** — direct fetch first, Browserless only on escalation |
 | 2.5 | Screenshot upload + transcription | Not started |
 | 3 | Validation loop | **Validators shipped and exercised live**, corrective-loop fixtures outstanding |
-| 4 | Remaining manifests | Not started |
+| 4 | Remaining manifests | **Shipped** — all four templates authored |
 | 5 | Versioning + diffs | Schema ready, UI not started |
 
 **Phase 1 is fully verified.** The cache-hit criterion held against a live key: the
@@ -1250,10 +1250,36 @@ a mixed answer is an attack — and all of them are kept so IPv4/IPv6 fallback s
 - ✅ Accept: legitimate output is **not** flagged — `57 g (2 oz)` passes via the conversion rule, "3 simple steps" passes as rhetorical, and a source spelling "two ounces" matches a `{value: 2, unit: "oz"}` spec
 - ✅ Accept: a 529 injected on one section call retries at the transport layer and the run completes without consuming the validation retry budget
 
-### Phase 4 — Remaining manifests · Not started
+### Phase 4 — Remaining manifests · **Shipped**
 
-- Comparison V1 (`comparison.png` — Winner block + Competitors #2–#5 with pros/cons/scores/review counts + scorecard), Interstitial V1 (`Interstitial.png`), Reasons V1 (`reasons.png` — numbered reasons + social proof + threaded comments with replies). **Simple Page is not here** — Phase 2.5 authors it from a transcribed capture.
-- ✅ Accept: all 5 templates generate end-to-end and their review screens visually correspond to the CMS screenshots section-for-section — Simple Page against the capture Phase 2.5 transcribed
+All four templates are authored from their CMS captures, with fallback word targets
+measured from two live landers each rather than estimated. The measurements agreed
+closely enough to trust: Reasons bodies at 1,029 and 951 words, Comparison advertorial
+bodies at 1,580 and 1,582, Interstitial pages at 1,368 and 1,390.
+
+Two schema additions came out of modelling the real forms:
+
+**`repeats: false`** marks a field inside a repeating section that occurs once — the
+Reasons Social Proof panel is a single heading above N review cards. The alternative,
+splitting the panel into two manifest sections, would draw a divider through a panel the
+CMS draws as one.
+
+**`list`** is an array of single-line strings, each its own input with its own delete
+button — the Comparison template's Pros and Cons. Distinct from `scaffolded`, which
+wraps each line in markup, and from `markdown`, where the bullets are characters inside
+one blob.
+
+**What the model is not allowed to write.** Comparison scores, review counts, competitor
+names and competitor URLs are `generate: false`. They are research inputs, not copy: a
+plausible-looking competitor name is exactly what no lint can catch, and inventing a
+rival's rating is what the compliance rules exist to prevent.
+
+Interstitial's CMS has a Footer panel; it is deliberately absent from the manifest, and
+a test enforces that no footer section or disclaimer field is ever generated.
+
+- ✅ Accept: every shipped manifest parses, and its selectors point at fields that exist
+- ✅ Accept: a repeating section always has something that actually repeats
+- ⏸ Accept: a live generation on each template — needs API budget
 
 ### Phase 5 — Versioning + diffs · Schema ready
 

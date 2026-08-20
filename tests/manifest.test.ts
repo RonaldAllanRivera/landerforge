@@ -18,10 +18,25 @@ describe("seeded manifests", () => {
       expect(parsed.sections.length).toBeGreaterThan(0);
     });
 
-    it(`${file} declares no disclaimer field — the footer is never generated`, () => {
+    /**
+     * The page footer and the legal disclaimers belong to the CMS's own Disclaimers
+     * resource, which this tool never writes. Interstitial V1 has a Footer panel in its
+     * CMS nav and it is deliberately absent from the manifest.
+     *
+     * Scoped to the footer SECTION and to the word "disclaimer" rather than to the
+     * substring "footer" anywhere. The loose version flagged `cta.cta_footer_text`,
+     * which is the reassurance line under the CTA button — "{{guaranteeDays}}-Day
+     * Money-Back Guarantee" — and is ordinary CTA copy in the CTA panel.
+     */
+    it(`${file} generates no footer section and no disclaimer field`, () => {
       const parsed = parseManifest(JSON.parse(readFileSync(join(DIR, file), "utf8")));
-      const keys = parsed.sections.flatMap((s) => s.fields.map((f) => `${s.id}.${f.key}`));
-      expect(keys.filter((k) => /disclaimer|footer/i.test(k))).toEqual([]);
+      const offenders = parsed.sections.flatMap((s) =>
+        s.fields
+          .filter((f) => f.generate)
+          .filter((f) => /^footer$/i.test(s.id) || /disclaimer/i.test(`${f.key} ${f.label}`))
+          .map((f) => `${s.id}.${f.key}`),
+      );
+      expect(offenders).toEqual([]);
     });
   }
 });
@@ -64,5 +79,41 @@ describe("manifest refinements", () => {
     expect(() =>
       parseManifest(wrap({ ...scaffoldedField, type: "display", generate: true })),
     ).toThrow();
+  });
+});
+
+describe("the footer rule is scoped, not a substring match", () => {
+  it("still refuses a generated field in a footer section", () => {
+    const manifest = {
+      slug: "advertorial_v1",
+      name: "T",
+      sections: [
+        {
+          id: "footer",
+          label: "Footer",
+          defaultPresent: true,
+          fields: [
+            {
+              key: "small_print",
+              label: "Small Print",
+              type: "text",
+              generate: true,
+              markdownBold: false,
+              productNameFormat: "none",
+              linkPolicy: "none",
+              voice: "brand_we",
+            },
+          ],
+        },
+      ],
+    };
+    const parsed = parseManifest(manifest);
+    const offenders = parsed.sections.flatMap((s) =>
+      s.fields
+        .filter((f) => f.generate)
+        .filter((f) => /^footer$/i.test(s.id) || /disclaimer/i.test(`${f.key} ${f.label}`))
+        .map((f) => `${s.id}.${f.key}`),
+    );
+    expect(offenders).toEqual(["footer.small_print"]);
   });
 });

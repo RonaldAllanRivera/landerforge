@@ -9,6 +9,19 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Interstitial V1**, the fourth and last template — 16 sections, 44 generated fields,
+  read from a 16,760px CMS capture sliced so the labels were legible rather than
+  guessed. Fallbacks measured from two live Interstitial landers (1,368 and 1,390 words
+  a page). No selector map: unlike the other templates its class names are things like
+  `s10-p1` and `mnk-p`, and a wrong hint is worse than none.
+- **A guard test over every shipped manifest.** These are data files that reach
+  production through a seed script, so a mistake surfaces as strange output rather than
+  as an error. It checks the things the schema cannot: that selectors point at fields
+  that exist (a typo yields no hints and no complaint), that a repeating section has
+  something that actually repeats, that every non-generated field declares what it looks
+  like, that word targets run low to high, and that no field is both ungenerated and
+  given a word target.
+
 - **Phase 2: the URL path works, and it no longer needs a headless browser.** Scraping
   now tries a plain HTTP GET with a realistic user agent first and only escalates to
   Browserless for what a GET genuinely cannot do — a bot challenge, or a page whose text
@@ -186,6 +199,13 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   modes worth knowing about.
 
 ### Fixed
+
+- **The "no footer content" rule flagged the wrong field.** It matched the substring
+  `footer` anywhere in a field key, which caught `cta.cta_footer_text` — the reassurance
+  line under the CTA button, ordinary copy in the CTA panel. The rule now scopes to a
+  footer *section* and to the word *disclaimer*, so it still refuses what it was written
+  to refuse. Interstitial's CMS Footer panel remains deliberately unmodelled, and a test
+  proves a generated field in a footer section is still rejected.
 
 - **The anti-fabrication guard rejected numbers that were in the source.** It compared
   `rawText.includes(String(value))` — a substring match — so a page writing "1,500

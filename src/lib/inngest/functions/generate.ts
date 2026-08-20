@@ -13,6 +13,7 @@ import { effortFor, loadSettings, modelForTier, type Settings } from "@/lib/core
 import { scrape } from "@/lib/scrape/browserless";
 import { extractBlocks } from "@/lib/scrape/extract";
 import { type SourceBlock, SourceBlockSchema } from "@/lib/shared/blocks";
+import { buildCorrectiveFeedback, runCorrectiveLoop, sectionStatus } from "@/lib/shared/corrective";
 import type { Violation } from "@/lib/shared/lints";
 import { parseManifest, type TemplateManifest } from "@/lib/shared/manifest";
 import { outputContract } from "@/lib/shared/output-contract";
@@ -239,56 +240,52 @@ export const generate = inngest.createFunction(
       if (plan && !plan.present) continue;
       if (section.fields.every((f) => !f.generate)) continue;
 
-      let violations: Violation[] = [];
-      let output: Record<string, unknown> = {};
+      /**
+       * The loop itself lives in lib/shared/corrective so the worker and its tests run
+       * the same one. Everything Inngest-shaped — the budget ceiling, the memoized step,
+       * the cost log — stays in the callback where it belongs.
+       */
+      const result = await runCorrectiveLoop({
+        maxRetries: MAX_CORRECTIVE_RETRIES,
+        attempt: async (previous, attempt) => {
+          if (calls >= settings.max_calls_per_run) {
+            await appendRunNote(db, generationId, { kind: "budget_exceeded", calls });
+            throw new NonRetriableError("budget exceeded");
+          }
+          calls++;
 
-      for (let attempt = 0; attempt <= MAX_CORRECTIVE_RETRIES; attempt++) {
-        if (calls >= settings.max_calls_per_run) {
-          await appendRunNote(db, generationId, { kind: "budget_exceeded", calls });
-          throw new NonRetriableError("budget exceeded");
-        }
-        calls++;
-
-        // Each attempt is its own step with a deterministic id, so replay is stable.
-        const attemptViolations = violations;
-        output = await step.run(`generate-${section.id}-attempt-${attempt}`, async () => {
-          const generated = await callSection({
-            manifest,
-            section,
-            brief,
-            priorSections,
-            blocks,
-            violations: attemptViolations,
-            settings,
+          // Each attempt is its own step with a deterministic id, so replay is stable.
+          return step.run(`generate-${section.id}-attempt-${attempt}`, async () => {
+            const generated = await callSection({
+              manifest,
+              section,
+              brief,
+              priorSections,
+              blocks,
+              violations: [...previous],
+              settings,
+            });
+            await logStep(
+              db,
+              generationId,
+              `generate:${section.id}`,
+              attempt,
+              generated.usage,
+              generated.model,
+            );
+            return generated.output;
           });
-          await logStep(
-            db,
-            generationId,
-            `generate:${section.id}`,
-            attempt,
-            generated.usage,
-            generated.model,
-          );
-          return generated.output;
-        });
+        },
+        validate: (output) =>
+          validateSection(
+            { manifest, allowedSpecs: brief.allowedSpecs, sectionPlan: brief.sectionPlan, blocks },
+            section.id,
+            output,
+          ),
+      });
 
-        /**
-         * Validation is plain code INSIDE the loop, never a thrown error. Throwing
-         * would make Inngest retry the call identically, without the corrective
-         * feedback, fighting this loop.
-         */
-        violations = validateSection(
-          { manifest, allowedSpecs: brief.allowedSpecs, sectionPlan: brief.sectionPlan, blocks },
-          section.id,
-          output,
-        );
-        /**
-         * Stop on "nothing the model can fix", not on "nothing wrong". An internal
-         * violation means one of our own checks threw; quoting it back would spend the
-         * whole retry budget re-buying the identical failure.
-         */
-        if (!violations.some(isActionable)) break;
-      }
+      const violations = result.violations;
+      const output = result.output;
 
       const sectionViolations = violations;
       const sectionOutput = output;
@@ -298,7 +295,7 @@ export const generate = inngest.createFunction(
             generation_id: generationId,
             section_id: section.id,
             output: sectionOutput,
-            status: sectionViolations.length === 0 ? "done" : "flagged",
+            status: sectionStatus(sectionViolations),
             violations: sectionViolations,
           },
           { onConflict: "generation_id,section_id" },
@@ -326,11 +323,6 @@ export const generate = inngest.createFunction(
 );
 
 // ── helpers ────────────────────────────────────────────────────────────────
-
-/** A violation the model can actually act on. See the "internal" lint category. */
-function isActionable(v: Violation): boolean {
-  return v.category !== "internal";
-}
 
 async function setStatus(
   step: { run: (id: string, fn: () => Promise<unknown>) => Promise<unknown> },
@@ -388,16 +380,7 @@ async function callSection(args: {
    * a saving. See SECTION_TIERS for the cache-isolation caveat that goes with it.
    */
   const model = modelForTier(args.settings, args.section.tier);
-  const actionable = args.violations.filter(isActionable);
-  const corrective =
-    actionable.length > 0
-      ? `\n\nYour previous attempt had these violations. Fix every one:\n${actionable
-          .map(
-            (v) =>
-              `- [${v.category}] ${v.address}: ${v.message}${v.excerpt ? ` — "${v.excerpt}"` : ""}`,
-          )
-          .join("\n")}`
-      : "";
+  const corrective = buildCorrectiveFeedback(args.violations);
 
   const response = await anthropic.messages.create({
     model,

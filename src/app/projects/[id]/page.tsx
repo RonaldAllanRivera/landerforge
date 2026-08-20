@@ -35,6 +35,14 @@ export default async function ProjectHistory({ params }: { params: Promise<{ id:
             <span className="row">
               {g.parent_id && <span className="badge">from v-parent #{g.parent_id}</span>}
               <span className={`badge ${g.status === "done" ? "ok" : ""}`}>{g.status}</span>
+              {/* The history answered "when" and never "what changed", which is the
+                  question somebody actually has in front of two versions. */}
+              <Link
+                href={{ pathname: "/generations/[id]/diff", query: { id: String(g.id) } }}
+                className="ghost-link"
+              >
+                Compare
+              </Link>
             </span>
           </div>
           <p className="muted">

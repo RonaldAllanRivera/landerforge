@@ -9,6 +9,30 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Version diffs** at `/generations/[id]/diff`, linked from both the project history and
+  the review screen. A history that lists runs answers "when" and never "what changed",
+  which is the question somebody actually has in front of two versions. Word-level
+  rather than character-level, and driven by the manifest rather than the stored keys so
+  a field the older run never produced shows as *added* instead of being invisible.
+  Repeating sections diff per instance.
+
+  Two guards keep it readable. A size cap, because the longest-common-subsequence table
+  is words-before × words-after cells. And a **similarity floor**: below roughly a third
+  shared text it shows labelled before/after blocks instead of interleaving. Two
+  versions of one sentence want the changed words marked; two versions written from
+  different source URLs produce alternating strikethrough and underline that is
+  technically a correct diff and impossible to read — which is exactly what the first
+  render looked like. Additions are underlined and removals struck through as well as
+  tinted, so the diff survives a reader who cannot separate the two hues.
+- **The corrective loop is fixture-tested.** It moved to `lib/shared/corrective`, the
+  worker now calls it, and the tests drive it with a scripted model — a second copy
+  written for tests would only have proved the copy works. The model is faked; the
+  validator is not: the fixtures run through the real `validateSection` against the real
+  Advertorial manifest, so a lint that stops firing breaks these tests. Pinned:
+  converging on the first clean attempt, spending exactly the retry budget on copy that
+  never improves, keeping the last output rather than discarding the section, and
+  stopping immediately when only `internal` violations remain.
+
 - **Interstitial V1**, the fourth and last template — 16 sections, 44 generated fields,
   read from a 16,760px CMS capture sliced so the labels were legible rather than
   guessed. Fallbacks measured from two live Interstitial landers (1,368 and 1,390 words

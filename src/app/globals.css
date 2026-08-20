@@ -304,3 +304,35 @@ code {
 .ghost-link:hover {
   color: var(--accent);
 }
+
+/* ── Version diffs ──────────────────────────────────────────────────────────
+   Word-level marks on prose. Colour alone is not the signal: additions are
+   underlined and removals struck through, so the diff survives being read by
+   someone who cannot separate the two hues. */
+
+.diff {
+  white-space: pre-wrap;
+  line-height: 1.7;
+  margin: 0.4rem 0 0;
+}
+.diff .ins {
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  border-radius: 2px;
+}
+.diff .del {
+  background: color-mix(in srgb, var(--flag) 20%, transparent);
+  text-decoration: line-through;
+  opacity: 0.75;
+  border-radius: 2px;
+}
+
+.diff-label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-bottom: 0.2rem;
+}

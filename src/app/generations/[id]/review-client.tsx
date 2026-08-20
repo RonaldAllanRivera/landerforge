@@ -110,6 +110,8 @@ export function ReviewScreen(props: Props) {
         </span>
         {props.costUsd !== null && <> · ${Number(props.costUsd).toFixed(3)}</>}
         {!props.canEdit && <> · read-only (viewers cannot change copy)</>}
+        {" · "}
+        <a href={`/generations/${props.generationId}/diff`}>Compare versions</a>
       </p>
 
       {status !== "done" && props.canEdit && (

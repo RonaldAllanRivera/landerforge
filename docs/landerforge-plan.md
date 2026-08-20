@@ -1158,9 +1158,9 @@ Update the marker when a phase lands; the CHANGELOG records the detail.
 | 1 | Foundation + Advertorial V1 end-to-end | **Shipped** (`v0.1.0`) |
 | 2 | Scraping + density matching | **Shipped** — direct fetch first, Browserless only on escalation |
 | 2.5 | Screenshot upload + transcription | Not started |
-| 3 | Validation loop | **Validators shipped and exercised live**, corrective-loop fixtures outstanding |
+| 3 | Validation loop | **Shipped** — validators exercised live, loop fixture-tested offline |
 | 4 | Remaining manifests | **Shipped** — all four templates authored |
-| 5 | Versioning + diffs | Schema ready, UI not started |
+| 5 | Versioning + diffs | **Shipped** — word-level diff between any two versions |
 
 **Phase 1 is fully verified.** The cache-hit criterion held against a live key: the
 first section call of a real run read 3,871 tokens from cache, matching the measured
@@ -1243,12 +1243,25 @@ a mixed answer is an attack — and all of them are kept so IPv4/IPv6 fallback s
 - ✅ Accept: an SVG renamed to `.png`, and a decompression-bomb PNG, are both rejected by the worker's `sharp` validation rather than by the bucket's MIME list
 - ✅ Accept: **Simple Page's manifest is authored from a transcribed screenshot**, closing the last open question
 
-### Phase 3 — Validation loop · Validators shipped
+### Phase 3 — Validation loop · **Shipped**
 
-- The normalization pass + all nine lint categories + retry-with-feedback + flagging
-- ✅ Accept: seeded bad outputs are all caught and retries fix or flag — hardcoded price, double-bold sentence, `{{discountValue}}` without `%`, fabricated spec, spelled-out fabricated spec ("weighs just two ounces" with no matching entry), literal product name outside the token, hardcoded year, unbalanced `{{if}}`, literal `XX` country code, case-variant token, link violating the field's `linkPolicy`, unknown scaffold variant, and a ≥12-word verbatim lift from `raw_text`
-- ✅ Accept: legitimate output is **not** flagged — `57 g (2 oz)` passes via the conversion rule, "3 simple steps" passes as rhetorical, and a source spelling "two ounces" matches a `{value: 2, unit: "oz"}` spec
-- ✅ Accept: a 529 injected on one section call retries at the transport layer and the run completes without consuming the validation retry budget
+The nine lints are covered by unit tests and have been exercised against live model
+output, which is how three of them were found to be reporting the wrong thing. The loop
+itself is now fixture-tested: `lib/shared/corrective` holds it, the worker calls it, and
+the tests drive it with a scripted model instead of an API key.
+
+The model is faked; **the validator is not**. The fixtures run through the real
+`validateSection` against the real Advertorial manifest, so a lint that stops firing
+breaks these tests rather than quietly passing them. What is pinned is control flow —
+converge on the first clean attempt, spend exactly the retry budget on copy that never
+improves, keep the last output rather than discarding the section, and stop immediately
+when only `internal` violations remain, since a bug in our own validator is not
+something the model can fix and quoting it back buys the identical failure again.
+
+- ✅ Accept: seeded bad output produces the expected violations and the loop converges when fixed
+- ✅ Accept: copy that never improves costs exactly one attempt plus the retry budget, then flags
+- ✅ Accept: the corrective prompt quotes category, address, message and excerpt
+- ✅ Accept: an all-internal failure costs one call, not three
 
 ### Phase 4 — Remaining manifests · **Shipped**
 
@@ -1281,10 +1294,34 @@ a test enforces that no footer section or disclaimer field is ever generated.
 - ✅ Accept: a repeating section always has something that actually repeats
 - ⏸ Accept: a live generation on each template — needs API budget
 
-### Phase 5 — Versioning + diffs · Schema ready
+### Phase 5 — Versioning + diffs · **Shipped**
 
-- Regenerate-section flow, version chain, diff view, changed-section badges
-- ✅ Accept: regenerate one section → new generation row created, diff shows only that section changed
+`/generations/[id]/diff` compares any two versions of a project field by field. It
+defaults to the version this one was cloned from, falling back to the preceding version
+number — "what did my regenerate change" is the question the screen exists to answer,
+and making somebody pick the other half of the answer first is a poor way to ask it. The
+comparison target is a query parameter, so a diff is a linkable URL.
+
+Word-level, not character-level: this is prose, and a character diff of a rewritten
+sentence is confetti. Two guards keep it readable:
+
+- **A size cap.** The longest-common-subsequence table is words-before × words-after
+  cells. The Advertorial body is about 1,000 words, so a pair of them is a million and
+  fine; a pathological pair is not, and a review screen that hangs is worse than one
+  that says "this changed" without underlining which words.
+- **A similarity floor.** Below roughly a third shared text the diff shows labelled
+  before and after blocks instead of interleaving. Two versions of one sentence want
+  the changed words marked; two versions written from different source URLs produce a
+  page of alternating strikethrough and underline that is technically a correct diff
+  and impossible to read. Both regimes are visible on one screen in practice — a
+  rewritten headline renders as blocks while the summary beneath it keeps inline marks.
+
+Additions are underlined and removals struck through as well as tinted, so the diff
+survives a reader who cannot separate the two hues.
+
+- ✅ Accept: two versions of the same project diff field by field, including per instance of a repeating section
+- ✅ Accept: a field the older version never produced shows as added rather than being invisible
+- ✅ Accept: the history screen and the review screen both link to it
 
 ## Testing
 

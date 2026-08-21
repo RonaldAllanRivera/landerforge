@@ -152,3 +152,64 @@ export async function retryGenerationAction(generationId: number): Promise<SaveR
   revalidatePath(`/generations/${generationId}`);
   return { ok: true };
 }
+
+export interface RegenerateResult {
+  ok: boolean;
+  message?: string;
+  generationId?: number;
+}
+
+/**
+ * Write the copy again as the next version, keeping the old one.
+ *
+ * The database has been ready for this since the first migration — set `parent_id` and
+ * the insert trigger copies the parent's `manifest_snapshot` and `source_id` forward,
+ * so the new run is judged by the same rules and reads the same source. Nothing in the
+ * app ever set it, which meant `parent_id` was always null, the diff screen's
+ * compare-against-what-this-was-cloned-from never fired, and making another version
+ * meant retyping the URL and the notes into the wizard.
+ *
+ * Reusing the parent's source is the point: same input, different output, so the
+ * difference between two versions is the model's, not the page's.
+ */
+export async function regenerateAction(
+  generationId: number,
+  notes: string,
+): Promise<RegenerateResult> {
+  const actor = await requireUser();
+  if (actor?.role !== "admin" && actor?.role !== "editor") {
+    return { ok: false, message: "Only an editor or an admin can generate." };
+  }
+
+  const db = await createClient();
+  const { data: parent } = await db
+    .from("generations")
+    .select("id, project_id, template_id, special_notes")
+    .eq("id", generationId)
+    .maybeSingle();
+  if (!parent) return { ok: false, message: "That generation no longer exists." };
+
+  const { data: created, error } = await db
+    .from("generations")
+    .insert({
+      owner_id: actor.id,
+      project_id: parent.project_id,
+      template_id: parent.template_id,
+      // The trigger reads this and copies the manifest snapshot and the source across.
+      parent_id: parent.id,
+      special_notes: notes.trim() || parent.special_notes,
+      status: "queued",
+    })
+    .select("id")
+    .single();
+  if (error) return { ok: false, message: error.message };
+
+  const newId = created.id as number;
+  await inngest.send({
+    name: "generation.requested",
+    data: { generationId: newId, attempt: 0 },
+  });
+
+  revalidatePath(`/projects/${parent.project_id}`);
+  return { ok: true, generationId: newId };
+}

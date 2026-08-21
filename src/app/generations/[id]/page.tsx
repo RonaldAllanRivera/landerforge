@@ -14,7 +14,9 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
 
   const { data: generation } = await supabase
     .from("generations")
-    .select("id, status, error_message, run_notes, total_cost_usd, manifest_snapshot")
+    .select(
+      "id, status, error_message, run_notes, total_cost_usd, manifest_snapshot, special_notes, version_num",
+    )
     .eq("id", generationId)
     .maybeSingle();
   if (!generation) notFound();
@@ -56,6 +58,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
       // The policy decides for real; this only avoids offering a control that would
       // be refused, which reads as a broken screen rather than a permission.
       canEdit={actor?.role === "admin" || actor?.role === "editor"}
+      specialNotes={generation.special_notes}
       manifest={parseManifest(generation.manifest_snapshot)}
       initialSections={sections ?? []}
     />

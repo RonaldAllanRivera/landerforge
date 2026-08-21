@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import type { Violation } from "@/lib/shared/lints";
 import type { TemplateField, TemplateManifest, TemplateSection } from "@/lib/shared/manifest";
@@ -21,7 +22,7 @@ import {
   writeField,
 } from "@/lib/shared/section-io";
 import { createClient } from "@/lib/supabase/client";
-import { retryGenerationAction, saveSectionAction } from "./actions";
+import { regenerateAction, retryGenerationAction, saveSectionAction } from "./actions";
 
 interface SectionRow {
   section_id: string;
@@ -41,6 +42,8 @@ interface Props {
   manifest: TemplateManifest;
   initialSections: SectionRow[];
   canEdit: boolean;
+  /** Prefills the regenerate box, because a re-run usually means "same brief, but…". */
+  specialNotes: string | null;
 }
 
 export function ReviewScreen(props: Props) {
@@ -148,7 +151,69 @@ export function ReviewScreen(props: Props) {
           canEdit={props.canEdit}
         />
       ))}
+
+      {props.canEdit && status === "done" && (
+        <RegenerateCard generationId={props.generationId} notes={props.specialNotes ?? ""} />
+      )}
     </main>
+  );
+}
+
+/**
+ * Write it again as the next version, keeping this one.
+ *
+ * The notes are editable and prefilled, because "same brief, but make the headline
+ * less breathless" is what a regenerate almost always is — and retyping the whole brief
+ * into the wizard to say it was the only way to do this before.
+ */
+function RegenerateCard({ generationId, notes }: { generationId: number; notes: string }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState(notes);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <section>
+      <div className="panel-head">
+        <span className="panel-toggle">Not right yet?</span>
+      </div>
+      <div className="card">
+        <p className="muted">
+          Writes the copy again as <strong>the next version</strong>, against the same source and
+          the same template. This version is kept, and the two can be compared side by side
+          afterwards.
+        </p>
+        <label htmlFor="regen-notes">Special notes for the new version</label>
+        <textarea
+          id="regen-notes"
+          value={draft}
+          rows={4}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Angle, claims, constraints — what to do differently this time."
+        />
+        <div className="field-head save-row">
+          <span className="muted">
+            {error ? <span className="violation">{error}</span> : "Costs another run."}
+          </span>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                const result = await regenerateAction(generationId, draft);
+                if (result.ok && result.generationId) {
+                  router.push(`/generations/${result.generationId}`);
+                } else {
+                  setError(result.message ?? "Could not start a new version.");
+                }
+              })
+            }
+          >
+            {pending ? "Starting…" : "Regenerate"}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 

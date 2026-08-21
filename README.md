@@ -205,6 +205,10 @@ src/lib/shared/      pure domain logic — no framework imports, no I/O
   ├── section-plan.ts  code-built density targets
   ├── prompt.ts        cache-aware message assembly
   ├── pricing.ts       per-model prices and cost arithmetic
+  ├── section-io.ts    reading and editing a section's stored output
+  ├── corrective.ts    the generate → validate → quote-back loop
+  ├── diff.ts          word-level comparison of two versions
+  ├── url-guard.ts     what the server is allowed to fetch
   └── lints/           the nine validators
 src/lib/anthropic/   the SDK client (everything pure lives in shared/)
 src/lib/scrape/      Browserless connection, HTML → blocks
@@ -221,16 +225,37 @@ built-ins. A single stray import there would make the whole validation layer
 unbundleable for a React Native client, and reimplementing the linters mobile-side is
 how two clients start disagreeing about what valid output is.
 
+### Pure logic never sits behind `server-only`
+
+The rule runs the other way too, and it is the one this codebase learned the hard way.
+Seven times a piece of pure logic was written inside a `server-only` module because
+that was where it was first needed — the cost summariser, the settings schema, the
+prompt assembler, the page-text heuristics, the SSRF range arithmetic, the spec guard,
+the corrective loop. Every one of them was untestable as a result, because a test cannot
+import through `server-only`. **Six of the seven were hiding a real bug**, found within
+minutes of being moved somewhere a test could reach them.
+
+So: if a function takes values and returns values, it belongs in `shared/`, and the
+module that does the I/O imports it. The seam is not a matter of taste — the test suite
+is what enforces it, and it only gets the chance if the logic is reachable.
+
+A function that genuinely needs I/O can still be tested by taking its dependency as a
+parameter. `vetResolvedAddress(hostname, resolver)` is the pattern: the DNS lookup is
+an argument, so the range checks are covered without a name server.
+
 ## Status
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Foundation, manifests, validation, pipeline, review screen | **Shipped** |
-| 2 | Scraping + density matching | Not started |
-| 2.5 | Screenshot upload + vision transcription | Not started |
-| 3 | Validation loop | Validators shipped; corrective-loop fixtures outstanding |
-| 4 | Comparison, Interstitial, Reasons manifests | Not started |
-| 5 | Section regeneration, version chain, diffs | Schema ready, UI not started |
+| 2 | Scraping + density matching | **Shipped** — plain fetch first, headless browser only on escalation |
+| 2.5 | Screenshot upload + vision transcription | Not started — the only unbuilt phase |
+| 3 | Validation loop | **Shipped** — validators exercised live, loop fixture-tested |
+| 4 | Comparison, Interstitial, Reasons manifests | **Shipped** — all four templates |
+| 5 | Regeneration, version chain, diffs | **Shipped** — word-level diff between any two versions |
+
+Three of the four templates have been generated only in tests, not against a live
+model — `make verify-live` is the command that closes that, and it needs API budget.
 
 Phase definitions and acceptance criteria live in
 [docs/landerforge-plan.md](docs/landerforge-plan.md) — the single specification

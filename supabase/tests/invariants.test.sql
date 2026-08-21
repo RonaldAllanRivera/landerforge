@@ -6,7 +6,7 @@
 -- a literal id is a different row on the second run.
 
 begin;
-select plan(6);
+select plan(8);
 
 insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, aud, role)
 values ('55555555-5555-5555-5555-555555555555', 'owner@example.com', '{}', '{}',
@@ -90,6 +90,49 @@ select throws_ok(
   '23514',
   null,
   'a project-scoped rule must name a project'
+);
+
+-- ── Regenerating as a new version ───────────────────────────────────────────
+-- Setting parent_id is the whole of what the Regenerate button sends; the trigger
+-- carries the rest across. The manifest half is covered above — these are the two
+-- properties the diff screen depends on that nothing else asserts.
+
+insert into public.sources (project_id, source_type, url, status, raw_text)
+select project_id, 'url', 'https://example.test/lander', 'ok', 'source text' from fixture;
+
+create temp table zz_src as
+select id from public.sources
+where project_id = (select project_id from fixture) order by id limit 1;
+
+insert into public.generations (owner_id, project_id, template_id, source_id, special_notes)
+select '55555555-5555-5555-5555-555555555555', project_id, template_id,
+       (select id from zz_src), 'the original brief'
+from fixture;
+
+create temp table zz_parent as
+select id, version_num from public.generations
+where project_id = (select project_id from fixture) order by version_num desc limit 1;
+
+-- The clone sends parent_id and notes. No source_id, no manifest_snapshot.
+insert into public.generations (owner_id, project_id, template_id, parent_id, special_notes)
+select '55555555-5555-5555-5555-555555555555', project_id, template_id,
+       (select id from zz_parent), 'try it again, less breathless'
+from fixture;
+
+create temp table zz_clone as
+select id, version_num, source_id, special_notes from public.generations
+where project_id = (select project_id from fixture) order by version_num desc limit 1;
+
+select results_eq(
+  $$ select source_id from zz_clone $$,
+  $$ select id from zz_src $$,
+  'a clone inherits the parent source, so a diff compares copy rather than input'
+);
+
+select results_eq(
+  $$ select special_notes from zz_clone $$,
+  $$ values ('try it again, less breathless') $$,
+  'the new brief is the caller''s — a regenerate is usually "same source, different steer"'
 );
 
 select * from finish();

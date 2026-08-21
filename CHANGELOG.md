@@ -9,6 +9,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **Regenerate as a new version**, on the review screen of a finished run. The notes are
+  editable and prefilled, because a re-run is almost always "same source, different
+  steer" and retyping the whole brief into the wizard was the only way to say so.
+
+  The database had been ready for this since the first migration: set `parent_id` and
+  the insert trigger copies the parent's `manifest_snapshot` and `source_id` forward, so
+  the new run is judged by the same rules and reads the same input — which is what makes
+  a diff about the copy rather than about the page. Nothing in the app ever set it, so
+  `parent_id` was always null and the diff screen's compare-against-what-this-was-cloned-from
+  could never fire. Two pgTAP tests now pin the source and notes behaviour; the manifest
+  half was already covered.
+
 - **`make verify-live`**: one generation per template with a pass/fail summary — cost,
   clean-versus-flagged sections, and every violation. The last acceptance criterion for
   Phases 4 and 5 is the only one that needs API budget, so it is a single command rather

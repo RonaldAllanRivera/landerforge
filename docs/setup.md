@@ -59,11 +59,15 @@ project to try the tool. The password form only appears against a local database
 Parts 1 through 14 below: GitHub, Supabase, Google sign-in, Inngest, Vercel. Do this
 when you want to use it from anywhere, or let someone else use it.
 
-### Stage 2 — Add URL scraping · ~5 minutes · free
+### Stage 2 — Add a headless browser · ~5 minutes · free · probably never
 
-Part 8, Browserless. Until then, use the "paste the source text" box, which reaches the
-same result with one extra copy-paste. Worth deferring until pasting actually annoys
-you.
+Part 8, Browserless. **URL scraping already works without it.** The scraper tries a
+plain HTTP request first, and for every lander tested that is enough — these pages are
+server-rendered and their only protection is user-agent filtering. Browserless is the
+fallback for the two cases a plain request genuinely cannot handle: a bot challenge, and
+a page whose text only appears after JavaScript runs.
+
+Add it when a URL actually fails, not before.
 
 ### Stage 3 — Only if it becomes a business tool
 
@@ -119,16 +123,16 @@ The only free-tier limitation you will actually notice is **24-hour trace retent
 if a run fails and you look three days later, the detailed logs are gone. The failure
 reason is still stored in your own database.
 
-### Browserless free works, with one constraint
+### Browserless is a fallback, and free covers it easily
 
-1,000 units a month and 2 concurrent browsers is far more than a single person needs.
-The binding constraint is the **60-second maximum session**. The scraper is configured
-with a 15-second navigation timeout and a ~30-second overall budget, so it fits — but a
-very slow page could be cut off, and that appears as a scrape failure rather than an
-error message.
+Most scrapes never reach it. A plain HTTP request handles the pages this tool targets,
+so Browserless only runs when that request meets a bot challenge or comes back with no
+server-rendered text — which on the landers tested so far has been never.
 
-If that becomes annoying, the $25/month tier removes the cap. Do not pay for it before
-you have hit the problem.
+When it does run: 1,000 units a month and 2 concurrent browsers, with a **60-second
+maximum session**. The scraper uses a 15-second navigation timeout and a ~30-second
+overall budget, so it fits, but a very slow page can be cut off and that appears as a
+scrape failure rather than an error message.
 
 ### ⚠️ Vercel Hobby is non-commercial only
 
@@ -161,8 +165,8 @@ recovery simple.
 - [app.inngest.com](https://app.inngest.com) — **sign up with your GitHub account**. Free,
   no card. This is what runs generation in the background so a two-minute job does not
   need a browser tab held open, and so a crash mid-run resumes instead of restarting.
-- [browserless.io](https://www.browserless.io) — free, no card. Skip it for now; Part 8
-  explains when you actually need it.
+- [browserless.io](https://www.browserless.io) — free, no card. **Probably skip it
+  entirely**; Part 8 explains the narrow case where it is needed.
 
 You will also need these on your own machine:
 
@@ -171,8 +175,13 @@ node --version     # need 22 or higher — nodejs.org
 pnpm --version     # need 10 or higher — `npm install -g pnpm`
 docker --version   # docker.com/products/docker-desktop
 supabase --version # `npm install -g supabase`
+vercel --version   # `npm install -g vercel`
 git --version
 ```
+
+The Vercel CLI is not strictly required — you can do everything through the dashboard —
+but `vercel env pull` and `vercel logs` turn two of the more painful debugging loops
+into one command each.
 
 **Keep a scratch file open.** You will collect about a dozen keys along the way, and
 several are shown only once.
@@ -334,12 +343,12 @@ supabase link --project-ref YOUR-PROJECT-ID
 supabase db push
 ```
 
-You should see the four migrations apply in order. If `db push` reports nothing to do,
+You should see all ten migrations apply in order. If `db push` reports nothing to do,
 check that `supabase link` picked the right project.
 
 **Verify it worked.** In the dashboard, go to **Table Editor**. You should see
 `allowed_emails`, `user_roles`, `templates`, `projects`, `sources`, `generations`,
-`generation_sections`, `generation_steps`, `rules` and `client_config`.
+`generation_sections`, `generation_steps`, `settings`, `rules` and `client_config`.
 
 ---
 
@@ -394,11 +403,14 @@ Part 14 checks both.
 
 ---
 
-## Part 8 — Get a Browserless token (optional at first)
+## Part 8 — Get a Browserless token (optional, and often unnecessary)
 
-Browserless loads competitor pages so the app can read them. **You can skip this and add
-it later** — without it, the URL option simply fails and you use the "paste the source
-text" box instead. Everything else works.
+Browserless is the second rung of the scraper. The first is a plain HTTP request, which
+handles every lander tested so far, so **the URL box works with no token at all** — a
+blocked scrape degrades to a run with no source and a note on the review screen, rather
+than an error.
+
+Skip this until a URL you care about actually fails.
 
 1. Go to [browserless.io](https://www.browserless.io) → sign up.
 2. From the dashboard, copy your **API token**.
@@ -428,7 +440,8 @@ You will connect your deployed app in Part 11, after it has a URL.
 1. Go to [vercel.com/new](https://vercel.com/new).
 2. **Import** your `landerforge` repository.
 3. Leave the framework preset as **Next.js** and the build settings alone.
-4. Expand **Environment Variables** and add all seven, exactly as named:
+4. Expand **Environment Variables** and add these, exactly as named. Only the first six
+   are required; the two Browserless values can be left out entirely (see Part 8):
 
 | Name | Value |
 |---|---|
@@ -545,7 +558,17 @@ SUPABASE_SECRET_KEY=sb_secret_your_key \
 pnpm run seed
 ```
 
-You should see `seeded advertorial_v1 (6 sections)`.
+You should see all four templates seed:
+
+```
+seeded advertorial_v1 (6 sections)
+seeded comparison_v1 (9 sections)
+seeded interstitial_v1 (16 sections)
+seeded reasons_v1 (7 sections)
+```
+
+The inline environment variables above override anything in your local `.env`, so this
+targets the hosted project without editing a file.
 
 Re-run this whenever a manifest in `manifests/` changes. It updates in place rather than
 duplicating.
@@ -579,9 +602,17 @@ sign in again.
 **4. Background jobs are connected.** In Inngest, the `landerforge` app should be listed
 with the `generate-lander` function. If not, redo 11b.
 
-**5. A generation runs end to end.** In the app, create a project, then go to `/new`,
-pick the Advertorial template, leave the URL blank, write a sentence of notes, and
+**5. A generation runs end to end.** In the app, create a project at `/projects`, then go
+to `/new`, pick the Advertorial template, paste one of your own lander URLs, and
 Generate. You should be taken to a review screen where sections fill in as they finish.
+
+Leaving the URL blank also works and generates from your notes alone, but using a real
+URL exercises the scraper too, which is the part with more to go wrong.
+
+**5b. You can fix a flagged section.** Edit a field on that review screen and press
+**Save section**. The badge should move from `flagged` to `done` if you fixed the actual
+violation — saving re-runs the same checks the generator used, so it cannot be cleared by
+editing around it.
 
 **6. Prompt caching is working.** After that first run, in Supabase run:
 
@@ -593,11 +624,37 @@ order by id;
 
 From the second row onward, `cache_read_input_tokens` must be **greater than zero**. If
 every row is zero, caching is broken and you are paying several times more than
-necessary — see Troubleshooting.
+necessary — see Troubleshooting. `/costs` reports the same thing as a percentage, in red
+below 80%.
+
+**7. All four templates work.** Only Advertorial is proven by the steps above. When you
+have budget, run the rest from your own machine against the hosted database:
+
+```bash
+make dev          # in one terminal
+make verify-live  # in another
+```
+
+It generates once per template and prints cost, clean-versus-flagged sections and every
+violation, exiting non-zero if a run does not finish. Budget about $1.50 for all four.
 
 ---
 
 ## Ongoing operation
+
+### Set a spend limit before you need one
+
+**Do this first, not after.** `monthly_budget_usd` in the app's settings is advisory —
+it is shown on `/costs` and blocks nothing, deliberately, because a hard stop mid-run
+would leave a half-written page. The only real ceiling is the one in the Anthropic
+console:
+
+[console.anthropic.com](https://console.anthropic.com) → **Plans & Billing** → set a
+monthly spend limit.
+
+When it trips, the API returns "credit balance is too low" and every generation fails at
+the brief. That is the correct behaviour and much cheaper than the alternative, but it
+is worth knowing what the error means before you meet it.
 
 ### Watching cost
 
@@ -613,9 +670,40 @@ from public.generation_steps
 where created_at >= date_trunc('month', now());
 ```
 
-A healthy page costs roughly $0.20–0.40 on the Advertorial template. Consistently
-higher usually means caching has broken, or a section is burning both corrective
-retries every run.
+The SQL is there for when you want it, but **`/costs` in the app answers this better**.
+It leads with cache hit rate, then retry burn, then spend, and reports each model's
+clean-first-pass rate beside its cost per section — because a cheaper model that fails
+validation and burns three attempts is not cheaper.
+
+Costs at the shipped settings. Only one of these is measured, and the table says which:
+
+| Template | Sections generated | Cost a page | |
+|---|---|---|---|
+| Advertorial | 5 | $0.20–0.25 | measured over four runs |
+| Reasons | 6 | ~$0.25–0.35 | estimated from section count |
+| Comparison | 7 | ~$0.30–0.45 | estimated |
+| Interstitial | 14 | ~$0.50–0.70 | estimated, and the least certain |
+
+A source URL pushes the brief higher than a notes-only run, because the whole extracted
+page goes into it — the measured Advertorial runs were $0.20 from notes and $0.40 from a
+URL. `make verify-live` replaces the estimates with real numbers.
+
+Consistently higher than that usually means caching has broken, or a section is burning
+both corrective retries every run. Both are visible on `/costs`.
+
+Admins can change the model, the reasoning effort and the per-run call ceiling on the
+same screen — no deploy. **Reasoning effort is the largest lever**: output tokens were
+88% of a measured run's cost, and `high` once spent an entire 16,000-token budget
+reasoning before returning two characters of JSON.
+
+### Comparing two versions
+
+Generating again into the same project creates a new version rather than overwriting the
+last one. `/projects/<id>` lists them, and **Compare** on any version diffs it field by
+field against the one before — lightly edited copy gets the changed words marked inline,
+a rewrite gets labelled before-and-after blocks.
+
+That is the quickest way to answer whether a regenerate was actually an improvement.
 
 ### Deploying changes
 
@@ -708,8 +796,17 @@ code problem rather than a configuration one — see the caching section of
 
 ### Scraping a URL always fails
 
-Confirm `BROWSERLESS_TOKEN` and `BROWSERLESS_URL` are set, and that the token has credit.
-Some sites block automated visitors regardless; use the paste-the-text box for those.
+Open the run and read its **run notes** — the reason is recorded there, and the three
+causes need different responses:
+
+- *"no BROWSERLESS_TOKEN is set"* — the plain request was refused and there was no
+  browser to fall back to. Either the page needs one (Part 8), or the URL is wrong.
+- *"page has no server-rendered text"* — the content arrives via JavaScript. This one
+  genuinely needs Browserless.
+- *"…is not a public address"* — the URL resolves to a private or loopback address and
+  was refused deliberately. That guard is not configurable.
+
+For a site that blocks everything, use the paste-the-text box.
 
 ---
 
@@ -726,5 +823,10 @@ Some sites block automated visitors regardless; use the paste-the-text box for t
 
 **Add a user:** `/admin` in the app.
 **Remove a user:** `/admin` → Remove access. Never by hand in the database.
+**Add a project:** `/projects` → New project. Names are unique, ignoring case and spacing.
+**Change model, effort or the call ceiling:** `/costs`, admin only. No deploy.
+**Compare two versions:** `/projects/<id>` → Compare.
 **Deploy code:** `git push`.
 **Deploy database changes:** `supabase db push`.
+**Read production logs:** `vercel logs <deployment-url>`.
+**Pull production env vars locally:** `vercel env pull`.

@@ -1,268 +1,435 @@
+/*
+ * LanderForge — the proof sheet.
+ *
+ * This is a copy desk, not a dashboard. One person reads generated advertorial prose,
+ * judges it against constraints, fixes it, and pastes it into a CMS. So the interface
+ * is built as annotation on a proof: the copy is ink in the measure, and everything the
+ * tool adds — counts, limits, statuses, violations — is a mark in the margin.
+ *
+ * The palette comes from the same place. Non-photo blue is the pencil that did not
+ * reproduce when a page was shot for plates, which is exactly the right register for
+ * chrome that must never be mistaken for the copy. Red is the proofreader's, and is
+ * spent on violations and nothing else.
+ */
+
 :root {
-  --bg: #0e1114;
-  --surface: #15191e;
-  --surface-2: #1c2128;
-  --ink: #e7ecef;
-  --ink-2: #9ba6b2;
-  --rule: #262c34;
-  --accent: #4fd1be;
-  --flag: #ff8878;
-  --ok: #7ddb9a;
-  --radius: 6px;
+  --paper: #fbfbf9;
+  --paper-2: #f3f4f0;
+  --paper-3: #eaebe6;
+  --ink: #16181a;
+  --ink-2: #5b6470;
+  --ink-3: #8b939d;
+  --rule: #dedfd9;
+
+  --blue: #21607f;
+  --blue-tint: #dcecf4;
+  --red: #ab2b20;
+  --red-tint: #fae9e6;
+  --green: #1d6640;
+  --green-tint: #e3efe7;
+
+  --radius: 5px;
+  --measure: 40rem;
+  --rail: 6.5rem;
+  --gutter: 1.75rem;
+
+  color-scheme: light;
 }
+
+/*
+ * The dark variant keeps the structure and swaps the ground. Paper under a lamp becomes
+ * paper under a desk lamp at night; the marks stay in the same three registers.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14161a;
+    --paper-2: #1b1e24;
+    --paper-3: #23272e;
+    --ink: #e8eaec;
+    --ink-2: #9aa3ae;
+    --ink-3: #6d7681;
+    --rule: #2b3038;
+
+    --blue: #6fb6d8;
+    --blue-tint: #17303d;
+    --red: #f08a7d;
+    --red-tint: #3a1f1c;
+    --green: #79c99b;
+    --green-tint: #16301f;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #14161a;
+  --paper-2: #1b1e24;
+  --paper-3: #23272e;
+  --ink: #e8eaec;
+  --ink-2: #9aa3ae;
+  --ink-3: #6d7681;
+  --rule: #2b3038;
+
+  --blue: #6fb6d8;
+  --blue-tint: #17303d;
+  --red: #f08a7d;
+  --red-tint: #3a1f1c;
+  --green: #79c99b;
+  --green-tint: #16301f;
+
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
-  background: var(--bg);
+  background: var(--paper);
   color: var(--ink);
-  font:
-    15px / 1.6 ui-sans-serif,
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* ── Page frame ─────────────────────────────────────────────────────────── */
+
 main {
-  max-width: 62rem;
+  max-width: calc(var(--rail) + var(--gutter) + var(--measure));
   margin: 0 auto;
-  padding: 2.5rem 1.25rem 5rem;
+  padding: 3rem 1.5rem 6rem;
 }
+
 h1 {
-  font-size: 1.6rem;
-  letter-spacing: -0.01em;
-  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.021em;
+  line-height: 1.2;
+  margin: 0 0 0.4rem;
 }
+
 h2 {
-  font-size: 1.05rem;
-  margin: 2rem 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 2.75rem 0 0.85rem;
 }
+
 p.sub {
   color: var(--ink-2);
-  margin: 0 0 2rem;
+  margin: 0 0 2.25rem;
+  max-width: var(--measure);
 }
+
 a {
-  color: var(--accent);
+  color: var(--blue);
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
 }
+
+/* ── Navigation ─────────────────────────────────────────────────────────── */
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--paper-2);
+}
+
+.wordmark {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  font-size: 0.88rem;
+}
+.nav-links a {
+  color: var(--ink-2);
+  text-decoration: none;
+}
+.nav-links a:hover {
+  color: var(--ink);
+}
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+
 label {
   display: block;
-  font-size: 0.82rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.73rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
   color: var(--ink-2);
-  margin: 1rem 0 0.3rem;
+  margin: 1.25rem 0 0.4rem;
 }
+
 input,
 textarea,
 select {
   width: 100%;
-  padding: 0.55rem 0.7rem;
-  background: var(--surface);
+  padding: 0.6rem 0.75rem;
+  background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   color: var(--ink);
   font: inherit;
 }
+
 textarea {
-  min-height: 6rem;
+  min-height: 5rem;
   resize: vertical;
 }
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+input[readonly],
+textarea[readonly] {
+  background: var(--paper-2);
+  color: var(--ink-2);
+}
+
 button {
-  padding: 0.55rem 1rem;
+  padding: 0.55rem 1.05rem;
   border-radius: var(--radius);
-  border: 1px solid transparent;
-  background: var(--accent);
-  color: #06231f;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
   font: inherit;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
+button:hover:not(:disabled) {
+  background: var(--ink-2);
+  border-color: var(--ink-2);
+}
 button:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 button.ghost {
   background: transparent;
   border-color: var(--rule);
   color: var(--ink);
+  font-weight: 400;
 }
+button.ghost:hover:not(:disabled) {
+  background: var(--paper-2);
+  border-color: var(--ink-3);
+}
+
+.ghost-link {
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 0.88rem;
+}
+.ghost-link:hover {
+  color: var(--blue);
+}
+
+/* ── Surfaces ───────────────────────────────────────────────────────────── */
+
 .card {
-  background: var(--surface);
+  background: var(--paper-2);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  padding: 1rem 1.15rem;
+  padding: 1.15rem 1.35rem;
   margin-bottom: 0.9rem;
 }
-.field {
-  border-top: 1px solid var(--rule);
-  padding: 0.85rem 0;
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
 }
-.field:first-of-type {
+
+.muted {
+  color: var(--ink-2);
+  font-size: 0.87rem;
+}
+
+/*
+ * Marks. Mono, small, and never the same weight as the copy they annotate — a count
+ * that competes with the sentence it measures is a count in the wrong place.
+ */
+.badge {
+  display: inline-block;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+  padding: 0.12rem 0.42rem;
+  border-radius: 3px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.badge.ok {
+  background: var(--green-tint);
+  color: var(--green);
+}
+.badge.flag {
+  background: var(--red-tint);
+  color: var(--red);
+}
+
+.violation {
+  color: var(--red);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  margin: 0.3rem 0 0;
+}
+
+/* ── Generic field row, used by the forms ───────────────────────────────── */
+
+.field {
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--rule);
+}
+.field:first-child {
   border-top: 0;
+  padding-top: 0.15rem;
 }
 .field-head {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 .field-label {
-  font-size: 0.8rem;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.73rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
   color: var(--ink-2);
-}
-.copy-value {
-  white-space: pre-wrap;
-  margin: 0.45rem 0 0;
-}
-.badge {
-  font:
-    500 0.7rem / 1 ui-monospace,
-    monospace;
-  padding: 0.25rem 0.45rem;
-  border-radius: 3px;
-  background: var(--surface-2);
-  color: var(--ink-2);
-}
-.badge.ok {
-  color: var(--ok);
-}
-.badge.flag {
-  color: var(--flag);
-}
-.violation {
-  color: var(--flag);
-  font-size: 0.8rem;
-  margin: 0.3rem 0 0;
-}
-.muted {
-  color: var(--ink-2);
-  font-size: 0.85rem;
-}
-.row {
-  display: flex;
-  gap: 0.6rem;
-  align-items: center;
 }
 
-.nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1.25rem;
-  border-bottom: 1px solid var(--rule);
-  background: var(--surface);
-}
-.nav a {
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 600;
-}
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-.nav-links a {
-  font-weight: 400;
-  color: var(--ink-2);
-}
-.nav-links a:hover {
-  color: var(--accent);
-}
-code {
-  background: var(--surface-2);
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  font-size: 0.9em;
+.save-row {
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
 }
 
-/* ── Review screen: mirroring the CMS form ──────────────────────────────────
-   The point of this screen is that it can be read side by side with the CMS,
-   so the panel order, the labels and the control types all match it. */
+/* ── The proof: copy in the measure, marks in the margin ────────────────── */
+
+.proof {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  column-gap: var(--gutter);
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+}
+.proof:first-child {
+  border-top: 0;
+}
+
+/*
+ * The rail. Everything here is a mark on the proof, right-aligned against the copy so
+ * the eye can run straight down one edge looking for red.
+ */
+.proof-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.28rem;
+  text-align: right;
+  padding-top: 0.1rem;
+}
+.proof-name {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.71rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  line-height: 1.35;
+}
+.proof-body > textarea,
+.proof-body > input {
+  background: var(--paper);
+}
+.proof-body > textarea {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.855rem;
+  line-height: 1.65;
+}
+/* Short single-line copy is read as prose, so it is set as prose. */
+.proof-body > input {
+  font-size: 0.97rem;
+}
+
+@media (max-width: 46rem) {
+  .proof {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.5rem;
+  }
+  .proof-rail {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Section panels ─────────────────────────────────────────────────────── */
 
 .panel-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  margin: 2rem 0 0.6rem;
+  margin: 2.5rem 0 0.7rem;
   flex-wrap: wrap;
 }
-
 .panel-toggle {
   background: none;
   border: none;
   padding: 0;
   color: var(--ink);
-  font-size: 1.15rem;
+  font-family: var(--font-sans), ui-sans-serif, sans-serif;
+  font-size: 1.05rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   cursor: pointer;
 }
 .panel-toggle:hover {
-  color: var(--accent);
+  color: var(--blue);
 }
 
-/* One repeated entry — a review card in the CMS. */
+/* One repeated entry — a review card, a competitor. */
 .instance {
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 0.4rem 0.9rem 0.9rem;
-  margin-bottom: 0.9rem;
+  border-left: 2px solid var(--rule);
+  padding: 0.2rem 0 0.2rem 1.15rem;
+  margin: 0 0 1.1rem;
+}
+.instance:last-of-type {
+  margin-bottom: 0.3rem;
 }
 
-/* A CMS-side switch. Deliberately inert: this tool writes copy, and a control
-   that looks live but changes nothing is worse than one that is visibly not. */
-.cms-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-size: 0.8rem;
-}
-.switch {
-  width: 2rem;
-  height: 1.1rem;
-  border-radius: 999px;
-  background: var(--rule);
-  position: relative;
-  display: inline-block;
-  flex: none;
-}
-.switch::after {
-  content: "";
-  position: absolute;
-  top: 0.15rem;
-  left: 0.18rem;
-  width: 0.8rem;
-  height: 0.8rem;
-  border-radius: 50%;
-  background: var(--ink-2);
-}
-.switch.on {
-  background: color-mix(in srgb, var(--accent) 55%, transparent);
-}
-.switch.on::after {
-  left: auto;
-  right: 0.18rem;
-  background: #06231f;
-}
-
-.save-row {
-  border-top: 1px solid var(--rule);
-  padding-top: 0.9rem;
-  margin-top: 0.4rem;
-}
-
-/* Markdown and scaffolded fields are edited as text, so monospace makes the
-   token braces and the list markers legible. */
-.field textarea {
-  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 0.86rem;
-  line-height: 1.5;
-}
-
-/* ── List screens ───────────────────────────────────────────────────────────
-   Primary actions sit beside the heading, not after the list: a create button
-   below a few hundred rows is a button nobody can reach. */
+/* ── List screens ───────────────────────────────────────────────────────── */
 
 .page-head {
   display: flex;
@@ -272,15 +439,15 @@ code {
   flex-wrap: wrap;
 }
 .page-head h1 {
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.25rem;
 }
 .page-head .sub {
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .search {
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 .search input {
   flex: 1;
@@ -292,47 +459,51 @@ code {
 .pager {
   gap: 1rem;
   align-items: center;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
-/* A link that reads as a secondary button without being one. */
-.ghost-link {
-  color: var(--ink-2);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-.ghost-link:hover {
-  color: var(--accent);
-}
-
-/* ── Version diffs ──────────────────────────────────────────────────────────
-   Word-level marks on prose. Colour alone is not the signal: additions are
-   underlined and removals struck through, so the diff survives being read by
-   someone who cannot separate the two hues. */
+/* ── Version diffs ──────────────────────────────────────────────────────── */
 
 .diff {
   white-space: pre-wrap;
-  line-height: 1.7;
-  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  margin: 0.35rem 0 0;
 }
 .diff .ins {
-  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  background: var(--green-tint);
+  color: var(--green);
   text-decoration: underline;
-  text-decoration-thickness: 2px;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
   border-radius: 2px;
 }
 .diff .del {
-  background: color-mix(in srgb, var(--flag) 20%, transparent);
+  background: var(--red-tint);
+  color: var(--red);
   text-decoration: line-through;
-  opacity: 0.75;
   border-radius: 2px;
 }
-
 .diff-label {
   display: block;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--ink-2);
-  margin-bottom: 0.2rem;
+  color: var(--ink-3);
+  margin-bottom: 0.25rem;
+}
+
+/*
+ * A reduced-motion preference has to beat everything, including any future rule that
+ * sets a transition on a specific selector. That is the one place !important is the
+ * correct tool rather than a shortcut around specificity.
+ */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    /* biome-ignore lint/complexity/noImportantStyles: an accessibility override must win */
+    animation: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: an accessibility override must win */
+    transition: none !important;
+  }
 }

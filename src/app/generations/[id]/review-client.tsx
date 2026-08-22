@@ -141,16 +141,20 @@ export function ReviewScreen(props: Props) {
 
       {/* Sections render in manifest order — which follows the CMS's rendered panel
           order — so copying into the CMS is a straight top-to-bottom walk. */}
-      {props.manifest.sections.map((section) => (
-        <SectionPanel
-          key={section.id}
-          section={section}
-          row={bySection.get(section.id)}
-          spend={props.spend[section.id]}
-          generationId={props.generationId}
-          canEdit={props.canEdit}
-        />
-      ))}
+      {/* Only sections that generate copy. The rest were CMS position markers, which
+          turned out to be noise on a screen whose job is reading and fixing prose. */}
+      {props.manifest.sections
+        .filter((section) => section.fields.some((f) => f.generate))
+        .map((section) => (
+          <SectionPanel
+            key={section.id}
+            section={section}
+            row={bySection.get(section.id)}
+            spend={props.spend[section.id]}
+            generationId={props.generationId}
+            canEdit={props.canEdit}
+          />
+        ))}
 
       {props.canEdit && status === "done" && (
         <RegenerateCard generationId={props.generationId} notes={props.specialNotes ?? ""} />
@@ -356,20 +360,11 @@ function SectionPanel({
               {spend.attempts > 1 && ` · ${spend.attempts} attempts`}
             </span>
           )}
-          {section.presenceToggleLabel && (
-            <CmsToggle label={section.presenceToggleLabel} on={section.defaultPresent} />
-          )}
         </span>
       </div>
 
       {open && (
         <div className="card">
-          {!hasEditableFields && (
-            <p className="muted">
-              Nothing is generated for this section — it is here so the panel order matches the CMS.
-            </p>
-          )}
-
           {isRepeating(section) ? (
             <>
               {/* Fields that occur once for the whole panel sit above the cards, which
@@ -412,7 +407,7 @@ function SectionPanel({
                     )}
                   </div>
                   {section.fields
-                    .filter((field) => fieldRepeats(section, field) || !field.generate)
+                    .filter((field) => fieldRepeats(section, field))
                     .map((field) => (
                       <FieldRow
                         key={field.key}
@@ -496,21 +491,6 @@ function SectionPanel({
   );
 }
 
-/**
- * A CMS-side switch, shown because the CMS shows it and the panels have to line up —
- * but not editable here. This tool writes copy; it does not own the page's display
- * settings, and a control that looks live and changes nothing is worse than an
- * honest one that is visibly off-limits.
- */
-function CmsToggle({ label, on }: { label: string; on?: boolean }) {
-  return (
-    <span className="cms-toggle" title="Set in the CMS, not here">
-      <span className="muted">{label}</span>
-      <span className={`switch ${on ? "on" : ""}`} aria-hidden />
-    </span>
-  );
-}
-
 function FieldRow({
   field,
   section,
@@ -544,28 +524,10 @@ function FieldRow({
     setTimeout(() => setCopied(false), 1200);
   }, [field.markdownBold, text]);
 
-  if (!field.generate) {
-    // Images are out of scope for now and add nothing but noise to a copy review.
-    if (field.displayKind === "image") return null;
-    if (field.displayKind === "toggle") {
-      return (
-        <div className="field">
-          <div className="field-head">
-            <span className="field-label">{field.label}</span>
-            <CmsToggle label="" />
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div className="field">
-        <div className="field-head">
-          <span className="field-label">{field.label}</span>
-          <span className="muted">chosen in the CMS</span>
-        </div>
-      </div>
-    );
-  }
+  // Nothing that is not generated appears here. Toggles, image slots and relation
+  // pickers are set in the CMS and were only ever shown to keep the panel order
+  // aligned with it — which cost more attention than the alignment was worth.
+  if (!field.generate) return null;
 
   const words = countWords(text);
   const target = field.fallbackWordTarget;
@@ -589,49 +551,56 @@ function FieldRow({
     return onChange(field.key, instance, next);
   };
 
+  /**
+   * The copy sits in the measure; everything measuring it sits in the margin. Running
+   * the counts down a single right-aligned edge means a page of sections can be scanned
+   * for red in one pass, rather than reading every field to find the one that is wrong.
+   */
   return (
-    <div className="field">
-      <div className="field-head">
-        <span className="field-label">{field.label}</span>
-        <span className="row">
-          {field.charLimit !== undefined && (
-            <span className={`badge ${overLimit ? "flag" : ""}`}>
-              {text.length}/{field.charLimit}
-            </span>
-          )}
-          {target && (
-            <span className={`badge ${inRange ? "ok" : "flag"}`}>
-              {words}w / {target[0]}–{target[1]}
-            </span>
-          )}
-          <button type="button" className="ghost" onClick={copy} disabled={!text}>
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </span>
+    <div className="proof">
+      <div className="proof-rail">
+        <span className="proof-name">{field.label}</span>
+        {target && (
+          <span className={`badge ${inRange ? "ok" : "flag"}`}>
+            {words}w / {target[0]}–{target[1]}
+          </span>
+        )}
+        {field.charLimit !== undefined && (
+          <span className={`badge ${overLimit ? "flag" : ""}`}>
+            {text.length}/{field.charLimit}
+          </span>
+        )}
+        <button type="button" className="ghost" onClick={copy} disabled={!text}>
+          {copied ? "Copied" : "Copy"}
+        </button>
       </div>
 
-      {multiline ? (
-        <textarea
-          value={text}
-          readOnly={!canEdit}
-          rows={field.type === "markdown" ? 12 : 4}
-          onChange={(e) => emit(e.target.value)}
-          placeholder={canEdit ? "" : "pending…"}
-        />
-      ) : (
-        <input
-          type="text"
-          value={text}
-          readOnly={!canEdit}
-          onChange={(e) => emit(e.target.value)}
-        />
-      )}
+      <div className="proof-body">
+        {multiline ? (
+          <textarea
+            value={text}
+            readOnly={!canEdit}
+            rows={field.type === "markdown" ? 14 : 4}
+            onChange={(e) => emit(e.target.value)}
+            placeholder={canEdit ? "" : "pending…"}
+            aria-label={field.label}
+          />
+        ) : (
+          <input
+            type="text"
+            value={text}
+            readOnly={!canEdit}
+            onChange={(e) => emit(e.target.value)}
+            aria-label={field.label}
+          />
+        )}
 
-      {violations.map((v) => (
-        <p className="violation" key={`${v.category}:${v.message}`}>
-          [{v.category}] {v.message}
-        </p>
-      ))}
+        {violations.map((v) => (
+          <p className="violation" key={`${v.category}:${v.message}`}>
+            [{v.category}] {v.message}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }

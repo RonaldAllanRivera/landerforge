@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { sectionIdOf } from "@/lib/shared/costs";
 import { parseManifest } from "@/lib/shared/manifest";
+import type { SectionPlan } from "@/lib/shared/section-plan";
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { ReviewScreen } from "./review-client";
 
@@ -15,7 +16,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
   const { data: generation } = await supabase
     .from("generations")
     .select(
-      "id, status, error_message, run_notes, total_cost_usd, manifest_snapshot, special_notes, version_num",
+      "id, status, error_message, run_notes, total_cost_usd, manifest_snapshot, special_notes, version_num, brief",
     )
     .eq("id", generationId)
     .maybeSingle();
@@ -59,6 +60,7 @@ export default async function GenerationPage({ params }: { params: Promise<{ id:
       // be refused, which reads as a broken screen rather than a permission.
       canEdit={actor?.role === "admin" || actor?.role === "editor"}
       specialNotes={generation.special_notes}
+      sectionPlan={(generation.brief as { sectionPlan?: SectionPlan } | null)?.sectionPlan ?? []}
       manifest={parseManifest(generation.manifest_snapshot)}
       initialSections={sections ?? []}
     />

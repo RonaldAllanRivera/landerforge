@@ -21,6 +21,7 @@ import {
   type SectionOutput,
   writeField,
 } from "@/lib/shared/section-io";
+import { resolveWordTarget, type SectionPlan } from "@/lib/shared/section-plan";
 import { createClient } from "@/lib/supabase/client";
 import { regenerateAction, retryGenerationAction, saveSectionAction } from "./actions";
 
@@ -44,6 +45,8 @@ interface Props {
   canEdit: boolean;
   /** Prefills the regenerate box, because a re-run usually means "same brief, but…". */
   specialNotes: string | null;
+  /** The run's computed targets. The rail must judge by what the validator judged by. */
+  sectionPlan: SectionPlan;
 }
 
 export function ReviewScreen(props: Props) {
@@ -153,6 +156,7 @@ export function ReviewScreen(props: Props) {
             spend={props.spend[section.id]}
             generationId={props.generationId}
             canEdit={props.canEdit}
+            plan={props.sectionPlan.find((entry) => entry.sectionId === section.id)}
           />
         ))}
 
@@ -288,12 +292,14 @@ function SectionPanel({
   spend,
   generationId,
   canEdit,
+  plan,
 }: {
   section: TemplateSection;
   row: SectionRow | undefined;
   spend?: { usd: number; attempts: number; model: string | null };
   generationId: number;
   canEdit: boolean;
+  plan?: SectionPlan[number];
 }) {
   /**
    * A local working copy. Editing straight into the fetched row would make every
@@ -381,6 +387,7 @@ function SectionPanel({
                     violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
                     canEdit={canEdit}
                     onChange={update}
+                    planField={plan?.fields[field.key]}
                   />
                 ))}
               {Array.from({ length: count }, (_, instance) => (
@@ -418,6 +425,7 @@ function SectionPanel({
                         violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
                         canEdit={canEdit}
                         onChange={update}
+                        planField={plan?.fields[field.key]}
                       />
                     ))}
                 </div>
@@ -452,6 +460,7 @@ function SectionPanel({
                 violations={violations.filter((v) => v.address.endsWith(`.${field.key}`))}
                 canEdit={canEdit}
                 onChange={update}
+                planField={plan?.fields[field.key]}
               />
             ))
           )}
@@ -499,6 +508,7 @@ function FieldRow({
   violations,
   canEdit,
   onChange,
+  planField,
 }: {
   field: TemplateField;
   section: TemplateSection;
@@ -507,6 +517,7 @@ function FieldRow({
   violations: Violation[];
   canEdit: boolean;
   onChange: (fieldKey: string, instance: number, value: unknown) => void;
+  planField?: { wordTarget: readonly [number, number] };
 }) {
   const [copied, setCopied] = useState(false);
   const raw = readField(section, output, field.key, instance);
@@ -530,7 +541,13 @@ function FieldRow({
   if (!field.generate) return null;
 
   const words = countWords(text);
-  const target = field.fallbackWordTarget;
+  /**
+   * The SAME resolution the validator uses — the brief's computed target first, the
+   * manifest fallback second. The first version of this rail read the fallback alone
+   * and showed red on fields the validator had passed: a mark that lies is worse than
+   * no mark, because it teaches the reader to ignore the true ones.
+   */
+  const target = resolveWordTarget(planField, field.fallbackWordTarget);
   const inRange = !target || (words >= target[0] && words <= target[1]);
   const overLimit = field.charLimit !== undefined && text.length > field.charLimit;
 
@@ -561,12 +578,19 @@ function FieldRow({
       <div className="proof-rail">
         <span className="proof-name">{field.label}</span>
         {target && (
-          <span className={`badge ${inRange ? "ok" : "flag"}`}>
+          /* A mark someone has to ask about needs a legend — the title is it. */
+          <span
+            className={`badge ${inRange ? "ok" : "flag"}`}
+            title={`${words} words now; the target is ${target[0]}–${target[1]}, matched from the source page's density`}
+          >
             {words}w / {target[0]}–{target[1]}
           </span>
         )}
         {field.charLimit !== undefined && (
-          <span className={`badge ${overLimit ? "flag" : ""}`}>
+          <span
+            className={`badge ${overLimit ? "flag" : ""}`}
+            title={`${text.length} characters of the ${field.charLimit} this CMS field allows`}
+          >
             {text.length}/{field.charLimit}
           </span>
         )}
@@ -580,7 +604,13 @@ function FieldRow({
           <textarea
             value={text}
             readOnly={!canEdit}
-            rows={field.type === "markdown" ? 14 : 4}
+            /**
+             * Sized to the copy, within reason. A 900-word body in a fixed 14-row
+             * scrollbox means reviewing the longest field — the one that needs the most
+             * reading — through a letterbox. The cap keeps a pathological output from
+             * swallowing the page; everything real renders in full.
+             */
+            rows={Math.min(40, Math.max(4, Math.ceil(text.length / 70) + text.split("\n").length))}
             onChange={(e) => emit(e.target.value)}
             placeholder={canEdit ? "" : "pending…"}
             aria-label={field.label}

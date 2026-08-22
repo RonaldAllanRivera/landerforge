@@ -13,71 +13,66 @@
  */
 
 :root {
+  /*
+   * Dark by default, and deliberately not neutral black. The ground carries a little
+   * blue so the surfaces above it read as layered paper under a desk lamp rather than
+   * as holes cut in a page — a flat #000 stack has no depth to work with.
+   */
+  --paper: #101319;
+  --paper-2: #171b23;
+  --paper-3: #1f242e;
+  --paper-4: #272d38;
+  --ink: #e9ecf1;
+  --ink-2: #98a2b3;
+  --ink-3: #6b7686;
+  --rule: #272d37;
+
+  /*
+   * Periwinkle rather than the cyan or acid green every dark tool reaches for. It is
+   * the descendant of non-photo blue — the pencil that did not reproduce when a page
+   * was shot for plates — which is the right register for chrome that must never be
+   * mistaken for the copy.
+   */
+  --blue: #8fb0ff;
+  --blue-tint: #1b2440;
+  --red: #ff9d90;
+  --red-tint: #35201f;
+  --green: #7fd4a3;
+  --green-tint: #14301f;
+
+  --radius: 9px;
+  --radius-sm: 6px;
+  --measure: 40rem;
+  --rail: 7rem;
+  --gutter: 1.5rem;
+
+  /* Lit from above: a hairline highlight is what separates a surface from a hole. */
+  --lift: inset 0 1px 0 rgb(255 255 255 / 5%);
+
+  color-scheme: dark;
+}
+
+/* Available, but never driven by the operating system — this tool is dark. */
+:root[data-theme="light"] {
   --paper: #fbfbf9;
-  --paper-2: #f3f4f0;
+  --paper-2: #f4f5f2;
   --paper-3: #eaebe6;
+  --paper-4: #e0e2dc;
   --ink: #16181a;
   --ink-2: #5b6470;
   --ink-3: #8b939d;
   --rule: #dedfd9;
 
-  --blue: #21607f;
-  --blue-tint: #dcecf4;
+  --blue: #3557b8;
+  --blue-tint: #e4eaff;
   --red: #ab2b20;
   --red-tint: #fae9e6;
   --green: #1d6640;
   --green-tint: #e3efe7;
 
-  --radius: 5px;
-  --measure: 40rem;
-  --rail: 6.5rem;
-  --gutter: 1.75rem;
+  --lift: none;
 
   color-scheme: light;
-}
-
-/*
- * The dark variant keeps the structure and swaps the ground. Paper under a lamp becomes
- * paper under a desk lamp at night; the marks stay in the same three registers.
- */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #14161a;
-    --paper-2: #1b1e24;
-    --paper-3: #23272e;
-    --ink: #e8eaec;
-    --ink-2: #9aa3ae;
-    --ink-3: #6d7681;
-    --rule: #2b3038;
-
-    --blue: #6fb6d8;
-    --blue-tint: #17303d;
-    --red: #f08a7d;
-    --red-tint: #3a1f1c;
-    --green: #79c99b;
-    --green-tint: #16301f;
-
-    color-scheme: dark;
-  }
-}
-
-:root[data-theme="dark"] {
-  --paper: #14161a;
-  --paper-2: #1b1e24;
-  --paper-3: #23272e;
-  --ink: #e8eaec;
-  --ink-2: #9aa3ae;
-  --ink-3: #6d7681;
-  --rule: #2b3038;
-
-  --blue: #6fb6d8;
-  --blue-tint: #17303d;
-  --red: #f08a7d;
-  --red-tint: #3a1f1c;
-  --green: #79c99b;
-  --green-tint: #16301f;
-
-  color-scheme: dark;
 }
 
 * {
@@ -111,12 +106,9 @@ h1 {
 }
 
 h2 {
-  font-size: 0.78rem;
-  font-weight: 500;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--ink-2);
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 2.75rem 0 0.85rem;
 }
 
@@ -135,13 +127,18 @@ a {
 /* ── Navigation ─────────────────────────────────────────────────────────── */
 
 .nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 0.85rem 1.5rem;
+  padding: 0.8rem 1.5rem;
   border-bottom: 1px solid var(--rule);
-  background: var(--paper-2);
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .wordmark {
@@ -171,10 +168,8 @@ a {
 
 label {
   display: block;
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.73rem;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
+  font-size: 0.84rem;
+  font-weight: 500;
   color: var(--ink-2);
   margin: 1.25rem 0 0.4rem;
 }
@@ -183,12 +178,26 @@ input,
 textarea,
 select {
   width: 100%;
-  padding: 0.6rem 0.75rem;
+  padding: 0.6rem 0.8rem;
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   color: var(--ink);
   font: inherit;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+input:hover:not(:focus):not([readonly]),
+textarea:hover:not(:focus):not([readonly]) {
+  border-color: var(--ink-3);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-tint);
 }
 
 textarea {
@@ -196,13 +205,11 @@ textarea {
   resize: vertical;
 }
 
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible,
 button:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--blue);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 input[readonly],
@@ -212,32 +219,39 @@ textarea[readonly] {
 }
 
 button {
-  padding: 0.55rem 1.05rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--ink);
-  background: var(--ink);
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--blue);
   color: var(--paper);
   font: inherit;
-  font-weight: 500;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    filter 120ms ease,
+    transform 80ms ease;
 }
 button:hover:not(:disabled) {
-  background: var(--ink-2);
-  border-color: var(--ink-2);
+  filter: brightness(1.08);
+}
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 button.ghost {
-  background: transparent;
+  background: var(--paper-3);
   border-color: var(--rule);
   color: var(--ink);
-  font-weight: 400;
+  font-weight: 500;
+  box-shadow: var(--lift);
 }
 button.ghost:hover:not(:disabled) {
-  background: var(--paper-2);
-  border-color: var(--ink-3);
+  filter: none;
+  background: var(--paper-4);
 }
 
 .ghost-link {
@@ -255,8 +269,11 @@ button.ghost:hover:not(:disabled) {
   background: var(--paper-2);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
-  padding: 1.15rem 1.35rem;
+  padding: 1.2rem 1.4rem;
   margin-bottom: 0.9rem;
+  box-shadow:
+    var(--lift),
+    0 1px 2px rgb(0 0 0 / 20%);
 }
 
 .row {
@@ -280,8 +297,8 @@ button.ghost:hover:not(:disabled) {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 0.72rem;
   letter-spacing: 0.01em;
-  padding: 0.12rem 0.42rem;
-  border-radius: 3px;
+  padding: 0.14rem 0.48rem;
+  border-radius: 999px;
   background: var(--paper-3);
   color: var(--ink-2);
   white-space: nowrap;
@@ -321,11 +338,9 @@ button.ghost:hover:not(:disabled) {
   flex-wrap: wrap;
 }
 .field-label {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.73rem;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--ink);
 }
 
 .save-row {
@@ -355,17 +370,20 @@ button.ghost:hover:not(:disabled) {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.28rem;
+  gap: 0.3rem;
   text-align: right;
-  padding-top: 0.1rem;
+  padding-top: 0.15rem;
+}
+.proof-rail .ghost {
+  padding: 0.18rem 0.6rem;
+  font-size: 0.76rem;
+  border-radius: 999px;
 }
 .proof-name {
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 0.71rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-2);
-  line-height: 1.35;
+  font-size: 0.8rem;
+  font-weight: 550;
+  color: var(--ink);
+  line-height: 1.3;
 }
 .proof-body > textarea,
 .proof-body > input {
@@ -401,8 +419,19 @@ button.ghost:hover:not(:disabled) {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  margin: 2.5rem 0 0.7rem;
+  margin: 2.6rem 0 0.7rem;
   flex-wrap: wrap;
+}
+.panel-head::after {
+  content: "";
+  flex: 1;
+  order: 1;
+  height: 1px;
+  background: var(--rule);
+  min-width: 2rem;
+}
+.panel-head > .row {
+  order: 2;
 }
 .panel-toggle {
   background: none;
@@ -414,6 +443,7 @@ button.ghost:hover:not(:disabled) {
   font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
+  order: 0;
 }
 .panel-toggle:hover {
   color: var(--blue);
@@ -421,7 +451,7 @@ button.ghost:hover:not(:disabled) {
 
 /* One repeated entry — a review card, a competitor. */
 .instance {
-  border-left: 2px solid var(--rule);
+  border-left: 2px solid color-mix(in srgb, var(--blue) 35%, transparent);
   padding: 0.2rem 0 0.2rem 1.15rem;
   margin: 0 0 1.1rem;
 }
